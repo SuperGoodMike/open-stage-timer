@@ -34,14 +34,12 @@ setInterval(() => {
     return;
   }
   if (!timer.running) return;
-
   if (timer.type === "countdown") {
     timer.time = Math.max(0, timer.time - 1);
     if (timer.time === 0) timer.running = false;
   } else if (timer.type === "countup") {
     timer.time += 1;
   }
-
   io.emit("timer_update", timer);
 }, 1000);
 

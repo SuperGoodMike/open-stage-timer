@@ -35,7 +35,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif" }} className="p-6 text-center">
-      <h1 className="text-3xl font-bold mb-4">Open Stage Timer</h1>
+      <h1 className="text-3xl font-bold mb-4">Open Stage Timer (Controller)</h1>
       <div className="text-6xl mb-4 tabular-nums">{display}</div>
 
       <div className="mb-4 space-x-2">
@@ -69,7 +69,10 @@ export default function App() {
       </div>
 
       <p className="mt-6 text-sm" style={{ color: "#666" }}>
-        Backend: <code>http://{backendHost}</code> · Frontend: Vite at <code>http://{window.location.hostname}:5173</code>
+        Viewer link: <code>http://{window.location.hostname}:5173/viewer</code>
+      </p>
+      <p className="mt-1 text-sm" style={{ color: "#666" }}>
+        Backend: <code>http://{backendHost}</code>
       </p>
     </div>
   );

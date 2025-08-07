@@ -1,3 +1,15 @@
 html, body, #root { height: 100%; margin: 0; }
 * { box-sizing: border-box; }
 .tabular-nums { font-variant-numeric: tabular-nums; }
+.viewer {
+  display: grid;
+  place-items: center;
+  background: #000;
+  color: #0f0;
+  height: 100vh;
+}
+.viewer .time {
+  font-size: clamp(3rem, 12vw, 12rem);
+  line-height: 1;
+  letter-spacing: 0.05em;
+}
