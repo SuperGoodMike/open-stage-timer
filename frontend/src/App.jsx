@@ -1,11 +1,12 @@
-// Frontend: frontend/src/App.jsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:4000");
+// Resolve backend address from env or current host
+const backendHost = import.meta.env.VITE_BACKEND_URL || `${window.location.hostname}:4000`;
+const socket = io(`http://${backendHost}`);
 
 function formatAsHMS(totalSeconds) {
-  const s = Math.max(0, Math.floor(totalSeconds));
+  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
   const h = String(Math.floor(s / 3600)).padStart(2, "0");
   const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
   const sec = String(s % 60).padStart(2, "0");
@@ -24,13 +25,13 @@ export default function App() {
 
   const start = () => {
     const payload = { type: mode };
-    if (mode !== "clock") payload.time = Number(inputTime) || 0;
+    if (mode !== "clock") payload.time = Math.max(0, Number(inputTime) || 0);
     socket.emit("start_timer", payload);
   };
   const stop = () => socket.emit("stop_timer");
   const reset = () => socket.emit("reset_timer");
 
-  const display = timer.type === "clock" ? formatAsHMS(timer.time) : formatAsHMS(timer.time);
+  const display = formatAsHMS(timer.time);
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif" }} className="p-6 text-center">
@@ -67,8 +68,8 @@ export default function App() {
         <button onClick={reset} className="bg-red-600 text-white px-4 py-2 rounded">Reset</button>
       </div>
 
-      <p className="mt-6 text-sm text-gray-600">
-        Backend: <code>http://localhost:4000</code> · Frontend: served by Vite at <code>http://localhost:5173</code>
+      <p className="mt-6 text-sm" style={{ color: "#666" }}>
+        Backend: <code>http://{backendHost}</code> · Frontend: Vite at <code>http://{window.location.hostname}:5173</code>
       </p>
     </div>
   );
