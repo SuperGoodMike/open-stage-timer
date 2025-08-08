@@ -15,7 +15,9 @@ app.get("/", (_req, res) => {
 });
 
 let timer = Engine.createInitialState();
-
+let settings = {
+  beepEnabled: true,
+};
 setInterval(() => {
   timer = Engine.tick(timer);
   io.emit("timer_update", timer);

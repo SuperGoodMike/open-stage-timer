@@ -14,10 +14,17 @@ export default function App() {
   const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
   const [inputTime, setInputTime] = useState(300);
   const [mode, setMode] = useState("countdown");
+  const [beepEnabled, setBeepEnabled] = useState(true); // NEW
 
   useEffect(() => {
-    socket.on("timer_update", setTimer);
-    return () => socket.off("timer_update");
+    const onTimer = (t) => setTimer(t);
+    const onSettings = (s) => setBeepEnabled(!!s?.beepEnabled); // NEW
+    socket.on("timer_update", onTimer);
+    socket.on("settings_update", onSettings);                   // NEW
+    return () => {
+      socket.off("timer_update", onTimer);
+      socket.off("settings_update", onSettings);                // NEW
+    };
   }, []);
 
   const start = () => socket.emit("start_timer", { time: inputTime, type: mode });
@@ -25,8 +32,14 @@ export default function App() {
   const reset = () => socket.emit("reset_timer");
   const applyTime = () => socket.emit("set_timer", inputTime);
   const applyMode = (m) => { setMode(m); socket.emit("set_mode", m); };
-
   const setPreset = (secs) => { setInputTime(secs); socket.emit("set_timer", secs); };
+
+  // NEW: controller toggle
+  const toggleBeep = (e) => {
+    const val = e.target.checked;
+    setBeepEnabled(val);                 // optimistic UI
+    socket.emit("set_beep_enabled", val);
+  };
 
   return (
     <div className="controller">
@@ -59,7 +72,16 @@ export default function App() {
         <button onClick={reset}>Reset</button>
       </div>
 
-      <p style={{ opacity: 0.7, marginTop: 12 }}>Viewer: <code>http://{window.location.hostname}:5173/viewer</code></p>
+      {/* NEW: Beep toggle */}
+      <div style={{ marginTop: 10 }}>
+        <label>
+          <input type="checkbox" checked={beepEnabled} onChange={toggleBeep} />&nbsp;Beep at zero
+        </label>
+      </div>
+
+      <p style={{ opacity: 0.7, marginTop: 12 }}>
+        Viewer: <code>http://{window.location.hostname}:5173/viewer</code>
+      </p>
     </div>
   );
 }
