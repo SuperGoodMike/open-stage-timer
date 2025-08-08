@@ -3,10 +3,6 @@ import { socket } from "./socket";   // ✅ use shared socket
 import "./controller.css";
 
 const backendHost = window.location.hostname;
-const socket = io(`http://${backendHost}:3000`, {
-  transports: ["websocket"],
-  reconnection: true,
-});
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
