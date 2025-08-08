@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
-
-const backendHost = import.meta.env.VITE_BACKEND_URL || `${window.location.hostname}:4000`;
-const socket = io(`http://${backendHost}`);
+import { socket } from "./socket"; // shared socket instance
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));

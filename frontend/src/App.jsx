@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
+import { socket } from "./socket";
 
 // Resolve backend address from env or current host
 const backendHost = import.meta.env.VITE_BACKEND_URL || `${window.location.hostname}:4000`;
