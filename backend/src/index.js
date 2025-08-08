@@ -26,6 +26,7 @@ setInterval(() => {
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
   socket.emit("timer_update", timer);
+  socket.emit("settings_update", settings); // 👈 send current settings to each client
 
   socket.on("start_timer", (payload) => {
     timer = Engine.start(timer, payload || {});
@@ -50,6 +51,13 @@ io.on("connection", (socket) => {
   socket.on("set_mode", (mode) => {
     timer = Engine.setMode(timer, mode);
     io.emit("timer_update", timer);
+  });
+  // NEW: enable/disable beep (from controller)
+  socket.on("set_beep_enabled", (flag) => {
+    const prev = settings.beepEnabled;
+    settings.beepEnabled = !!flag;
+    console.log("set_beep_enabled", prev, "->", settings.beepEnabled);
+    io.emit("settings_update", settings); // broadcast to all viewers/controllers
   });
 });
 

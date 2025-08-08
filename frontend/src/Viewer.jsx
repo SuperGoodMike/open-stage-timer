@@ -10,54 +10,107 @@ function formatAsHMS(totalSeconds) {
   return `${h}:${m}:${sec}`;
 }
 
-// NEW: tiny beep using Web Audio API (no file needed)
-function playBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.value = 880; // 880 Hz (A5)
-    o.connect(g);
-    g.connect(ctx.destination);
-    g.gain.setValueAtTime(0.001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-    o.start();
-    // quick 200ms beep
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
-    o.stop(ctx.currentTime + 0.22);
-  } catch (_) {
-    // ignore failures (e.g., autoplay restrictions)
-  }
-}
-
 export default function Viewer() {
   const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
-  const [beepEnabled, setBeepEnabled] = useState(true);           // NEW
-  const prevTime = useRef(0);
+  const [beepEnabled, setBeepEnabled] = useState(true); // synced from controller via settings_update
+  const [audioReady, setAudioReady] = useState(false);
 
+  const prevTime = useRef(0);
+  const audioCtxRef = useRef(null);
+
+  // Prime/unlock audio on first user gesture (required by browsers)
+  useEffect(() => {
+    const unlock = () => {
+      try {
+        if (!audioCtxRef.current) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtxRef.current = new Ctx();
+        }
+        if (audioCtxRef.current.state === "suspended") {
+          audioCtxRef.current.resume();
+        }
+        setAudioReady(true);
+      } catch {
+        // ignore
+      } finally {
+        window.removeEventListener("pointerdown", unlock);
+        window.removeEventListener("keydown", unlock);
+      }
+    };
+
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  // Tiny 200ms beep using Web Audio (no file needed)
+  const playBeep = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880; // A5
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      const t0 = ctx.currentTime;
+      gain.gain.setValueAtTime(0.001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.01);
+      osc.start(t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      osc.stop(t0 + 0.22);
+    } catch {
+      // ignore playback errors
+    }
+  };
+
+  // Subscribe to timer/settings updates
   useEffect(() => {
     const onTimer = (t) => {
-      // Edge-detect 0 for countdown and only beep if enabled
-      if (beepEnabled && t.type === "countdown" && prevTime.current > 0 && t.time === 0) {
+      // Beep only when countdown crosses from >0 to 0, if audio is ready and enabled
+      if (audioReady && beepEnabled && t.type === "countdown" && prevTime.current > 0 && t.time === 0) {
         playBeep();
       }
       prevTime.current = t.time;
       setTimer(t);
     };
-    const onSettings = (s) => setBeepEnabled(!!s?.beepEnabled);   // NEW
+
+    const onSettings = (s) => setBeepEnabled(!!s?.beepEnabled);
 
     socket.on("timer_update", onTimer);
-    socket.on("settings_update", onSettings);                      // NEW
+    socket.on("settings_update", onSettings);
 
     return () => {
       socket.off("timer_update", onTimer);
-      socket.off("settings_update", onSettings);                   // NEW
+      socket.off("settings_update", onSettings);
     };
-  }, [beepEnabled]);
+  }, [audioReady, beepEnabled]);
 
   return (
     <div className="viewer">
+      {!audioReady && (
+        <div
+          style={{
+            position: "fixed",
+            top: 12,
+            left: 12,
+            padding: "8px 10px",
+            background: "#222",
+            color: "#fff",
+            borderRadius: 6,
+            fontSize: 14,
+            opacity: 0.9,
+          }}
+        >
+          Click anywhere to enable sound
+        </div>
+      )}
       <div className="time">{formatAsHMS(timer.time)}</div>
     </div>
   );
