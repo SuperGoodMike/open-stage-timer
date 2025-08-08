@@ -85,13 +85,13 @@ export default function Viewer() {
   };
 
   return (
-    <div className="viewer">
-      <div className="time-display">{formatAsHMS(timer.time)}</div>
-      <button onClick={toggleBeep} className="beep-toggle">
+    <div className="viewer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: 'black' }}>
+      <div className="time-display" style={{ fontSize: '12vw', color: 'lime', fontFamily: 'monospace' }}>{formatAsHMS(timer.time)}</div>
+      <button onClick={toggleBeep} className="beep-toggle" style={{ marginTop: '20px', padding: '10px 20px', fontSize: '1.2rem' }}>
         {beepEnabled ? "Disable Beep" : "Enable Beep"}
       </button>
       {!audioReady && (
-        <div className="sound-unlock">Click anywhere to enable sound</div>
+        <div className="sound-unlock" style={{ position: 'fixed', top: 12, left: 12, background: '#222', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '14px' }}>Click anywhere to enable sound</div>
       )}
     </div>
   );
