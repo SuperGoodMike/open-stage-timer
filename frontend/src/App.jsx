@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { socket } from "./socket";
-
-// Resolve backend address from env or current host
-const backendHost = import.meta.env.VITE_BACKEND_URL || `${window.location.hostname}:4000`;
+import "./controller.css";
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -13,66 +11,39 @@ function formatAsHMS(totalSeconds) {
 }
 
 export default function App() {
-  const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
-  const [inputTime, setInputTime] = useState(300); // default 5 min
-  const [mode, setMode] = useState("countdown");
+  const [time, setTime] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [inputTime, setInputTime] = useState(300);
 
   useEffect(() => {
-    socket.on("timer_update", setTimer);
+    socket.on("timer_update", ({ time, running }) => {
+      setTime(time);
+      setRunning(running);
+    });
     return () => socket.off("timer_update");
   }, []);
 
-  const start = () => {
-    const payload = { type: mode };
-    if (mode !== "clock") payload.time = Math.max(0, Number(inputTime) || 0);
-    socket.emit("start_timer", payload);
-  };
-  const stop = () => socket.emit("stop_timer");
-  const reset = () => socket.emit("reset_timer");
-
-  const display = formatAsHMS(timer.time);
+  const startTimer = () => socket.emit("start_timer");
+  const pauseTimer = () => socket.emit("pause_timer");
+  const resetTimer = () => socket.emit("reset_timer");
+  const setTimer = () => socket.emit("set_timer", inputTime);
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif" }} className="p-6 text-center">
-      <h1 className="text-3xl font-bold mb-4">Open Stage Timer (Controller)</h1>
-      <div className="text-6xl mb-4 tabular-nums">{display}</div>
-
-      <div className="mb-4 space-x-2">
-        <label>
-          Mode:
-          <select value={mode} onChange={(e) => setMode(e.target.value)} className="border p-2 ml-2">
-            <option value="countdown">Countdown</option>
-            <option value="countup">Count Up</option>
-            <option value="clock">Clock</option>
-          </select>
-        </label>
+    <div className="controller">
+      <div className="time">{formatAsHMS(time)}</div>
+      <div className="buttons">
+        <button onClick={startTimer} disabled={running}>Start</button>
+        <button onClick={pauseTimer} disabled={!running}>Pause</button>
+        <button onClick={resetTimer}>Reset</button>
       </div>
-
-      {mode !== "clock" && (
-        <div className="mb-4">
-          <label className="mr-2">Seconds:</label>
-          <input
-            type="number"
-            value={inputTime}
-            onChange={(e) => setInputTime(e.target.value)}
-            className="border p-2"
-            min={0}
-          />
-        </div>
-      )}
-
-      <div className="mt-4 space-x-2">
-        <button onClick={start} className="bg-green-600 text-white px-4 py-2 rounded">Start</button>
-        <button onClick={stop} className="bg-yellow-600 text-white px-4 py-2 rounded">Stop</button>
-        <button onClick={reset} className="bg-red-600 text-white px-4 py-2 rounded">Reset</button>
+      <div>
+        <input
+          type="number"
+          value={inputTime}
+          onChange={(e) => setInputTime(Number(e.target.value))}
+        />
+        <button onClick={setTimer}>Set Time (seconds)</button>
       </div>
-
-      <p className="mt-6 text-sm" style={{ color: "#666" }}>
-        Viewer link: <code>http://{window.location.hostname}:5173/viewer</code>
-      </p>
-      <p className="mt-1 text-sm" style={{ color: "#666" }}>
-        Backend: <code>http://{backendHost}</code>
-      </p>
     </div>
   );
 }
