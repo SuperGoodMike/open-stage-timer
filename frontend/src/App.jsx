@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
+import { socket } from "./socket";   // ✅ use shared socket
 import "./controller.css";
 
 const backendHost = window.location.hostname;
-const socket = io(`http://${backendHost}:3000`);
+const socket = io(`http://${backendHost}:3000`, {
+  transports: ["websocket"],
+  reconnection: true,
+});
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -20,8 +23,15 @@ export default function App() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
+    socket.on("connect", () => {
+      console.log("Connected to backend");
+      setConnected(true);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from backend");
+      setConnected(false);
+    });
 
     socket.on("timer_update", ({ time, running }) => {
       setTime(time);
@@ -35,10 +45,25 @@ export default function App() {
     };
   }, []);
 
-  const startTimer = () => socket.emit("start_timer");
-  const pauseTimer = () => socket.emit("pause_timer");
-  const resetTimer = () => socket.emit("reset_timer");
-  const setTimer = () => socket.emit("set_timer", inputTime);
+  const startTimer = () => {
+    console.log("Emitting start_timer");
+    socket.emit("start_timer");
+  };
+
+  const pauseTimer = () => {
+    console.log("Emitting pause_timer");
+    socket.emit("pause_timer");
+  };
+
+  const resetTimer = () => {
+    console.log("Emitting reset_timer");
+    socket.emit("reset_timer");
+  };
+
+  const setTimer = () => {
+    console.log("Emitting set_timer", inputTime);
+    socket.emit("set_timer", inputTime);
+  };
 
   return (
     <div className="controller">

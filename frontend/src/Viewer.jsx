@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { socket } from "./socket";
+import { socket } from "./socket";   // ✅ use shared socket
 import "./viewer.css";
 
 function formatAsHMS(totalSeconds) {
