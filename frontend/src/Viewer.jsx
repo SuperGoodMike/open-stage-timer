@@ -10,8 +10,8 @@ function formatAsHMS(totalSeconds) {
   return `${h}:${m}:${sec}`;
 }
 
-const beepData = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=..."; // placeholder, you can swap with your asset
-//const beepData = "/beep.mp3"; // This will be served from public/beep.mp3
+//const beepData = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=..."; // placeholder, you can swap with your asset
+const beepData = "/beep.mp3"; // This will be served from public/beep.mp3
 
 export default function Viewer() {
   const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
