@@ -3,7 +3,6 @@ import { socket } from "./socket";
 
 // Resolve backend address from env or current host
 const backendHost = import.meta.env.VITE_BACKEND_URL || `${window.location.hostname}:4000`;
-const socket = io(`http://${backendHost}`);
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
