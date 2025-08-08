@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { socket } from "./socket";
+import io from "socket.io-client";
 import "./controller.css";
+
+const backendHost = window.location.hostname;
+const socket = io(`http://${backendHost}:3000`);
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -32,10 +35,10 @@ export default function App() {
     };
   }, []);
 
-  const startTimer = () => connected && socket.emit("start_timer");
-  const pauseTimer = () => connected && socket.emit("pause_timer");
-  const resetTimer = () => connected && socket.emit("reset_timer");
-  const setTimer = () => connected && socket.emit("set_timer", inputTime);
+  const startTimer = () => socket.emit("start_timer");
+  const pauseTimer = () => socket.emit("pause_timer");
+  const resetTimer = () => socket.emit("reset_timer");
+  const setTimer = () => socket.emit("set_timer", inputTime);
 
   return (
     <div className="controller">
