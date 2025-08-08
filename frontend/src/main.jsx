@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import Viewer from "./Viewer";
-import "./index.css";
+import "../index.css";
 
 const isViewer = window.location.pathname.startsWith("/viewer");
 
