@@ -1,0 +1,21 @@
+.viewer {
+  background-color: black;
+  color: #00ff00;
+  font-family: 'Courier New', Courier, monospace;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time {
+  font-size: 15vw;
+  font-weight: bold;
+  text-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+}
+
+.time.paused {
+  color: #ff0000;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+}

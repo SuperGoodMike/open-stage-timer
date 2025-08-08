@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { socket } from "./socket"; // shared socket instance
+import { socket } from "./socket";
+import "./viewer.css";
 
 function formatAsHMS(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -19,7 +20,9 @@ export default function Viewer() {
 
   return (
     <div className="viewer">
-      <div className="time">{formatAsHMS(timer.time)}</div>
+      <div className={`time ${timer.running ? "running" : "paused"}`}>
+        {formatAsHMS(timer.time)}
+      </div>
     </div>
   );
 }
