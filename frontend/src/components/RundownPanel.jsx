@@ -328,7 +328,14 @@ export default function RundownPanel() {
     />
     {" "}Viewer Stripe
   </label>
-
+	<label>
+	 <input
+		type="checkbox"
+		checked={rundown.showViewerProgress ?? true}  // default true
+		onChange={(e) => socket.emit("rundown_set_viewer_progress", e.target.checked)}
+	/>{" "}
+  Progress bar
+</label>
   {/* Auto-advance (unchanged) */}
   <label>
     <input

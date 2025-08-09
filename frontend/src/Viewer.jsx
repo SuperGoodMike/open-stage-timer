@@ -148,6 +148,10 @@ export default function Viewer() {
   const showTitle = hasSplit ? !!rd.showViewerTitle : !!rd.showViewerTitleStripe;
   const showStripe = hasSplit ? !!rd.showViewerStripe : !!rd.showViewerTitleStripe;
 
+  // NEW: independent progress-bar toggle (default true)
+  const showProgress =
+    typeof rd.showViewerProgress === "boolean" ? rd.showViewerProgress : true;
+
   return (
     <div ref={rootRef} className="viewer">
       {/* overlay controls */}
@@ -199,7 +203,7 @@ export default function Viewer() {
       </div>
 
       {/* bottom progress + down-pointing caret (fixed, full width) */}
-      {duration > 0 && (
+      {duration > 0 && showProgress && (
         <>
           <div className="viewer-caret" style={{ left: caretLeft }} />
           <div
