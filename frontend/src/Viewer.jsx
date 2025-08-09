@@ -196,30 +196,29 @@ export default function Viewer() {
 
         {/* centered time */}
         <div className={timeClass}>{formatSmart(timer.time)}</div>
-
-        {/* bottom progress + down-pointing caret */}
-        {duration > 0 && (
-          <>
-            <div className="viewer-caret" style={{ left: caretLeft }} />
-            <div className="viewer-progress">
-              <div className="viewer-progress-track">
-                <div
-                  className="viewer-progress-seg"
-                  style={{ background: "#28a745", width: `${greenP * 100}%` }}
-                />
-                <div
-                  className="viewer-progress-seg"
-                  style={{ background: "#f39c12", width: `${warnP * 100}%` }}
-                />
-                <div
-                  className="viewer-progress-seg"
-                  style={{ background: "#e74c3c", width: `${critP * 100}%` }}
-                />
-              </div>
-            </div>
-          </>
-        )}
       </div>
+
+      {/* bottom progress + down-pointing caret (fixed, full width) */}
+      {duration > 0 && (
+        <>
+          <div className="viewer-caret" style={{ left: caretLeft }} />
+          <div
+            className="viewer-progress"
+            style={{
+              // feed fractions to the grid
+              ["--green"]: `${Math.max(0, greenP)}fr`,
+              ["--warn"]:  `${Math.max(0, warnP)}fr`,
+              ["--crit"]:  `${Math.max(0, critP)}fr`,
+            }}
+          >
+            <div className="viewer-progress-track">
+              <div className="viewer-progress-seg seg-green" />
+              <div className="viewer-progress-seg seg-warn"  />
+              <div className="viewer-progress-seg seg-crit"  />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* overlay message (not flipped) */}
       {liveMessage && <div className="viewer-message">{liveMessage}</div>}
