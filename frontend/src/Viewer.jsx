@@ -19,7 +19,7 @@ export default function Viewer() {
   const rootRef = useRef(null);
 
   const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
-  const [rd, setRd] = useState({ items: [], activeIndex: null, showViewerTitleStripe: false });
+  const [rd, setRd] = useState({ items: [], activeIndex: null });
   const [beepEnabled, setBeepEnabled] = useState(true);
   const [audioReady, setAudioReady] = useState(false);
   const [messages, setMessages] = useState({ items: [], activeId: null });
@@ -142,12 +142,11 @@ export default function Viewer() {
 
   const liveMessage = messages.activeId ? messages.items.find((m) => m.id === messages.activeId)?.text : null;
 
-  // flags with legacy fallback ONLY if showViewerTitle is absent
-const showTitle = typeof rd.showViewerTitle === "boolean"
-  ? !!rd.showViewerTitle
-  : !!rd.showViewerTitleStripe;
+  // keep Title (with legacy fallback) — Stripe removed
+  const showTitle =
+    typeof rd.showViewerTitle === "boolean" ? !!rd.showViewerTitle : !!rd.showViewerTitleStripe;
 
-  // NEW: independent progress-bar toggle (default true)
+  // independent progress-bar toggle (default true)
   const showProgress =
     typeof rd.showViewerProgress === "boolean" ? rd.showViewerProgress : true;
 
@@ -177,14 +176,6 @@ const showTitle = typeof rd.showViewerTitle === "boolean"
         className="viewer-stage"
         style={{ transform: `scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})` }}
       >
-        {/* optional stripe */}
-        {showStripe && active && (
-          <div
-            className="viewer-topstripe"
-            style={{ background: active.color || "#28a745" }}
-          />
-        )}
-
         {/* optional header with title/notes */}
         {showTitle && active && (
           <div className="viewer-header">
@@ -210,14 +201,14 @@ const showTitle = typeof rd.showViewerTitle === "boolean"
             style={{
               // feed fractions to the grid
               ["--green"]: `${Math.max(0, greenP)}fr`,
-              ["--warn"]:  `${Math.max(0, warnP)}fr`,
-              ["--crit"]:  `${Math.max(0, critP)}fr`,
+              ["--warn"]: `${Math.max(0, warnP)}fr`,
+              ["--crit"]: `${Math.max(0, critP)}fr`,
             }}
           >
             <div className="viewer-progress-track">
               <div className="viewer-progress-seg seg-green" />
-              <div className="viewer-progress-seg seg-warn"  />
-              <div className="viewer-progress-seg seg-crit"  />
+              <div className="viewer-progress-seg seg-warn" />
+              <div className="viewer-progress-seg seg-crit" />
             </div>
           </div>
         </>
