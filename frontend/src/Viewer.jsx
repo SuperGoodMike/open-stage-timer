@@ -204,3 +204,4 @@ return (
     {!audioReady && <div className="sound-unlock">Click anywhere to enable sound</div>}
   </div>
 );
+}
