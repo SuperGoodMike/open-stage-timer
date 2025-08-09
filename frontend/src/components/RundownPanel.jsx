@@ -300,32 +300,29 @@ export default function RundownPanel() {
       </div>
 
       {/* toggles */}
-      <div
-        style={{
-          display: "flex",
-          gap: 16,
-          alignItems: "center",
-          marginTop: 10,
-          flexWrap: "wrap",
-        }}
-      >
-        <label>
-          <input
-            type="checkbox"
-            checked={rundown.autoAdvance}
-            onChange={toggleAA}
-          />{" "}
-          Auto-advance
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={rundown.showViewerTitleStripe}
-            onChange={toggleStripe}
-          />{" "}
-          Viewer Title/Stripe
-        </label>
-      </div>
+<div style={{ display:"flex", gap:16, alignItems:"center", marginTop:10, flexWrap:"wrap" }}>
+  <label>
+    <input
+      type="checkbox"
+      checked={!!rundown.showViewerTitle}
+      onChange={(e)=>socket.emit("rundown_set_viewer_title", e.target.checked)}
+    /> Viewer Title
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      checked={!!rundown.showViewerStripe}
+      onChange={(e)=>socket.emit("rundown_set_viewer_stripe", e.target.checked)}
+    /> Viewer Stripe
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      checked={!!rundown.autoAdvance}
+      onChange={(e)=>socket.emit("rundown_set_auto_advance", e.target.checked)}
+    /> Auto-advance
+  </label>
+</div>
 
       {/* list */}
       <div style={{ marginTop: 12 }}>

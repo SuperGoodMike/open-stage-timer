@@ -57,16 +57,17 @@
 }
 .viewer-progress-seg { height: 100%; }
 
-/* BIG/BRIGHT CARET just above the bar */
+/* BIG, high-contrast caret pointing DOWN */
 .viewer-caret {
-  position: absolute;            /* relative to the stage */
-  bottom: 44px;                  /* sits right above the bar */
+  position: absolute;
+  bottom: 44px;                 /* right above the bar (bar is 44px high) */
   transform: translateX(-50%);
   width: 0; height: 0;
   border-left: 18px solid transparent;
   border-right: 18px solid transparent;
-  border-bottom: 24px solid #fff;                /* bright pointer */
-  filter: drop-shadow(0 2px 0 rgba(0,0,0,0.9));  /* dark edge for contrast */
+  border-top: 24px solid #fff;  /* ▼ point down */
+  border-bottom: 0;
+  filter: drop-shadow(0 2px 0 rgba(0,0,0,.9));
   z-index: 5;
 }
 
@@ -94,3 +95,8 @@
 
 /* No caret/selection noise */
 .viewer, .viewer * { user-select: none; caret-color: transparent; }
+.viewer-topstripe {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 10px;
+}
