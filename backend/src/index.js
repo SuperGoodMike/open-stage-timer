@@ -96,9 +96,14 @@ setInterval(() => {
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
   
-socket.on("rundown_set_viewer_progress", (flag) => {
-  rundown.showViewerProgress = !!flag;
-  io.emit("rundown_update", rundown);
+io.on("connection", (socket) => {
+  console.log("client connected:", socket.id);
+
+  // progress bar toggle
+  socket.on("rundown_set_viewer_progress", (flag) => {
+    rundown.showViewerProgress = !!flag;
+    io.emit("rundown_update", rundown);
+  });
 
   // initial state push
   socket.emit("timer_update", timer);
@@ -110,7 +115,7 @@ socket.on("rundown_set_viewer_progress", (flag) => {
   socket.on("start_timer", (payload) => {
     if (payload && typeof payload === "object") {
       if (typeof payload.time === "number") timer.time = Math.max(0, Math.floor(payload.time));
-      if (typeof payload.type === "string")  timer.type = payload.type;
+      if (typeof payload.type === "string") timer.type = payload.type;
     }
     timer.running = true;
     broadcast();
@@ -124,7 +129,7 @@ socket.on("rundown_set_viewer_progress", (flag) => {
     broadcast();
   });
   socket.on("set_mode", (mode) => {
-    if (["countdown","countup","clock"].includes(mode)) timer.type = mode;
+    if (["countdown", "countup", "clock"].includes(mode)) timer.type = mode;
     broadcast();
   });
 
@@ -160,24 +165,10 @@ socket.on("rundown_set_viewer_progress", (flag) => {
     io.emit("rundown_update", rundown);
   });
 
-  // NEW: split toggles
-  socket.on("rundown_set_viewer_title",  (flag) => {
+  socket.on("rundown_set_viewer_title", (flag) => {
     rundown.showViewerTitle = !!flag;
     io.emit("rundown_update", rundown);
   });
-  socket.on("rundown_set_viewer_stripe", (flag) => {
-    rundown.showViewerStripe = !!flag;
-    io.emit("rundown_update", rundown);
-  });
-
-  // (optional legacy support; map old combined toggle to both)
-  //socket.on("rundown_set_viewer_title_stripe", (flag) => {
-    //const v = !!flag;
-    //rundown.showViewerTitle  = v;
-    //rundown.showViewerStripe = v;
-    //io.emit("rundown_update", rundown);
-  //});
-
 
   socket.on("rundown_start_item", (id) => {
     const before = rundown;
