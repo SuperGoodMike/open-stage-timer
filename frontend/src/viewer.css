@@ -14,58 +14,28 @@
 }
 
 /* No text selection/caret anywhere on viewer */
-.viewer, .viewer * {
-  user-select: none;
-  caret-color: transparent;
-}
+/* No caret/selection */
+.viewer, .viewer * { user-select: none; caret-color: transparent; }
 
-/* ===== Controls overlay (top-right) ===== */
-.viewer-controls {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  z-index: 50;
-  pointer-events: auto;
-}
+/* Controls (unchanged) */
+.viewer-controls{ position: fixed; top:10px; right:10px; display:flex; gap:8px; z-index:50; }
+.vc-btn{ width:36px; height:36px; display:grid; place-items:center; border-radius:8px; border:1px solid #2a2a2a; background:rgba(20,20,20,.9); color:#ddd; cursor:pointer; }
+.vc-btn:hover{ background:#1f1f1f; color:#fff; }
 
-.vc-btn {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  border: 1px solid #2a2a2a;
-  background: rgba(20,20,20,0.9);
-  color: #ddd;
-  cursor: pointer;
-  outline: none;
-}
-.vc-btn:hover { background: #1f1f1f; color: #fff; }
+/* Header (optional) */
+.viewer-header { grid-area: header; display:flex; align-items:center; gap:12px; padding:10px 16px; background:#1a1a1a; border-bottom:1px solid #222; }
+.viewer-dot{ width:12px; height:12px; border-radius:3px; flex:0 0 12px; }
+.viewer-title{ font-size:20px; font-weight:700; }
+.viewer-notes{ margin-left:auto; font-size:14px; opacity:.85; }
 
-/* ===== Optional header stripe ===== */
-.viewer-header {
-  grid-area: header;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: #1a1a1a;
-  border-bottom: 1px solid #222;
-}
-.viewer-dot   { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 12px; }
-.viewer-title { font-size: 20px; font-weight: 700; }
-.viewer-notes { margin-left: auto; font-size: 14px; opacity: .85; }
-
-/* ===== Centered giant time ===== */
+/* CENTERED BIG TIME */
 .viewer-time {
   grid-area: time;
   display: grid;
-  place-items: center;           /* centers horizontally + vertically */
+  place-items: center;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  font-size: clamp(4rem, 18vw, 20rem);
+  font-size: clamp(6rem, 22vw, 26rem); /* a bit bigger */
   font-weight: 800;
   line-height: .9;
   text-shadow: 0 0 20px rgba(255,255,255,0.12);
@@ -74,44 +44,31 @@
 .viewer-time--amber { color:#f39c12; }
 .viewer-time--red   { color:#e74c3c; }
 
-/* ===== Progress bar (bottom) ===== */
-.viewer-progress { grid-area: progress; padding: 0 16px 12px 16px; }
+/* PROGRESS BAR STUCK TO BOTTOM */
+.viewer-progress { grid-area: progress; padding: 0 0 0 0; }
 .viewer-progress-track {
-  position: relative;
-  height: 28px;
-  border-radius: 6px;
-  overflow: hidden;
+  position: fixed;      /* stick to the window bottom like the example */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 32px;
   display: flex;
+  overflow: hidden;
   background: #0d0d0d;
-  border: 1px solid #222;
+  border-top: 1px solid #222;
 }
 .viewer-progress-seg { height: 100%; }
 .viewer-caret {
   position: absolute;
-  top: -10px;
+  bottom: 28px;          /* little triangle just above the bar */
   transform: translateX(-50%);
   width: 0; height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-bottom: 10px solid #ddd;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 12px solid #ddd;
 }
-
-/* ===== Message overlay ===== */
-.viewer-message {
-  position: fixed;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 80vw;
-  background: rgba(0,0,0,0.78);
-  color: #fff;
-  border: 2px solid #00d084;
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: clamp(1rem, 2vw, 2rem);
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  z-index: 40;
-}
+/* Message bubble */
+.viewer-message{ position: fixed; bottom: 60px; left:50%; transform: translateX(-50%); max-width:80vw; background:rgba(0,0,0,.78); color:#fff; border:2px solid #00d084; border-radius:10px; padding:12px 16px; font-size:clamp(1rem,2vw,2rem); box-shadow:0 10px 30px rgba(0,0,0,.35); }
 
 /* ===== Sound unlock tip ===== */
 .sound-unlock {
@@ -123,7 +80,7 @@
   font-size: 14px; opacity: 0.9;
   pointer-events: none;
 }
-/* Full-screen container (no flip here) */
+/* Fullscreen container (not flipped) */
 .viewer {
   position: relative;
   height: 100vh;
@@ -132,7 +89,7 @@
   overflow: hidden;
 }
 
-/* The stage holds the layout and receives the flip transform */
+/* Stage receives the flip and holds the 3 rows */
 .viewer-stage {
   height: 100%;
   display: grid;
@@ -142,5 +99,6 @@
     "time"
     "progress";
 }
+
 
 /* Keep your existing .viewer-header, .viewer-time, .viewer-progress styles */
