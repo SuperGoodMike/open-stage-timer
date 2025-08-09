@@ -1,0 +1,20 @@
+.messages-panel { background:#1b1b1b; border:1px solid #2a2a2a; border-radius:10px; padding:12px; color:#fff; display:flex; flex-direction:column; gap:10px; }
+.mp-header { display:flex; align-items:center; }
+.mp-title { font-weight:700; flex:1; }
+.mp-add textarea { width:100%; min-height:70px; resize:vertical; background:#121212; color:#fff; border:1px solid #333; border-radius:6px; padding:8px; }
+.mp-add button { margin-top:6px; width:100%; }
+.mp-list { display:flex; flex-direction:column; gap:10px; }
+.mp-item { border:1px solid #333; border-radius:8px; padding:8px; background:#141414; }
+.mp-item.live { border-color:#2ecc71; box-shadow:0 0 0 1px rgba(46,204,113,.2) inset; }
+.mp-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; }
+.mp-idx { opacity:.8; }
+.mp-actions button { margin-left:4px; }
+.mp-text { width:100%; min-height:60px; background:#0f0f0f; color:#fff; border:1px solid #333; border-radius:6px; padding:6px; resize:vertical; }
+
+.messages-panel button,
+.messages-panel textarea { font-family: inherit; }
+.messages-panel button { background:#121212; color:#fff; border:1px solid #333; border-radius:6px; padding:.45rem .7rem; }
+.messages-panel button:hover { background:#0f0f0f; }
+.messages-panel button.primary { background:#0b5ed7; border-color:#0a58ca; }
+.messages-panel button.danger { background:#b02a37; border-color:#a52834; }
+.messages-panel button.ghost { background:transparent; border:1px solid #333; }

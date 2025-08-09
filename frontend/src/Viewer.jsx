@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import { socket } from "./socket";
 import "./viewer.css";
 
-function formatAsHMS(totalSeconds) {
-  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const h = String(Math.floor(s / 3600)).padStart(2, "0");
-  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-  const sec = String(s % 60).padStart(2, "0");
+function formatAsHMS(s){
+  s=Math.max(0,Math.floor(Number(s)||0));
+  const h=String(Math.floor(s/3600)).padStart(2,"0"),
+        m=String(Math.floor((s%3600)/60)).padStart(2,"0"),
+        sec=String(s%60).padStart(2,"0");
   return `${h}:${m}:${sec}`;
 }
 
@@ -16,99 +16,100 @@ export default function Viewer() {
   const [beepEnabled, setBeepEnabled] = useState(true);
   const [audioReady, setAudioReady] = useState(false);
 
-  const prevTime = useRef(0);
-  const audioCtxRef = useRef(null);
+  // NEW: messages state (for overlay)
+  const [messages, setMessages] = useState({ items: [], activeId: null });
 
-  // unlock audio
-  useEffect(() => {
+  const prev = useRef(0);
+  const audioCtx = useRef(null);
+
+  // unlock audio (once)
+  useEffect(()=> {
     const unlock = () => {
       try {
-        if (!audioCtxRef.current) {
-          const Ctx = window.AudioContext || window.webkitAudioContext;
-          audioCtxRef.current = new Ctx();
+        if (!audioCtx.current) {
+          const C = window.AudioContext || window.webkitAudioContext;
+          audioCtx.current = new C();
         }
-        if (audioCtxRef.current.state === "suspended") {
-          audioCtxRef.current.resume();
-        }
+        if (audioCtx.current.state === "suspended") audioCtx.current.resume();
         setAudioReady(true);
       } catch {}
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
     };
-    window.addEventListener("pointerdown", unlock, { once: true });
-    window.addEventListener("keydown", unlock, { once: true });
+    window.addEventListener("pointerdown", unlock, { once:true });
+    window.addEventListener("keydown", unlock, { once:true });
     return () => {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
     };
   }, []);
 
-  // tiny beep
-  const playBeep = () => {
+  const beep = () => {
     try {
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      const ctx = audioCtx.current; if (!ctx) return;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type="sine"; o.frequency.value=880; o.connect(g); g.connect(ctx.destination);
       const t0 = ctx.currentTime;
-      gain.gain.setValueAtTime(0.001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.01);
-      osc.start(t0);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
-      osc.stop(t0 + 0.22);
+      g.gain.setValueAtTime(0.001,t0);
+      g.gain.exponentialRampToValueAtTime(0.2,t0+0.01);
+      o.start(t0);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+0.2);
+      o.stop(t0+0.22);
     } catch {}
   };
 
-  // socket wiring
-  useEffect(() => {
-    const handleTimerUpdate = (t) => {
-      if (audioReady && beepEnabled && t.type === "countdown" && prevTime.current > 0 && t.time === 0) {
-        playBeep();
-      }
-      prevTime.current = t.time;
+  // sockets
+  useEffect(()=> {
+    const onT = (t) => {
+      if (audioReady && beepEnabled && t.type==="countdown" && prev.current>0 && t.time===0) beep();
+      prev.current = t.time;
       setTimer(t);
     };
-    const handleSettingsUpdate = (s) => setBeepEnabled(!!s?.beepEnabled);
-    const handleRundownUpdate = (r) => setRd(r);
+    const onS = (s) => setBeepEnabled(!!s?.beepEnabled);
+    const onR = (r) => setRd(r);
+    const onM = (m) => setMessages(m);                 // NEW
 
-    socket.on("timer_update", handleTimerUpdate);
-    socket.on("settings_update", handleSettingsUpdate);
-    socket.on("rundown_update", handleRundownUpdate);
+    socket.on("timer_update", onT);
+    socket.on("settings_update", onS);
+    socket.on("rundown_update", onR);
+    socket.on("messages_update", onM);                 // NEW
 
     return () => {
-      socket.off("timer_update", handleTimerUpdate);
-      socket.off("settings_update", handleSettingsUpdate);
-      socket.off("rundown_update", handleRundownUpdate);
+      socket.off("timer_update", onT);
+      socket.off("settings_update", onS);
+      socket.off("rundown_update", onR);
+      socket.off("messages_update", onM);              // NEW
     };
   }, [audioReady, beepEnabled]);
 
-  const active = useMemo(() => (
-    rd.activeIndex !== null ? rd.items[rd.activeIndex] : null
-  ), [rd]);
+  const active = useMemo(() => rd.activeIndex!==null ? rd.items[rd.activeIndex] : null, [rd]);
+  const duration = active?.durationSec ?? 0;
+  const warnP = Math.max(0, Math.min(1, active?.warnPercent ?? 0.2));
+  const critP = Math.max(0, Math.min(1, active?.critPercent ?? 0.1));
+  const greenP = Math.max(0, 1 - (warnP + critP));
 
-  // progress info
-  const durationSec = active?.durationSec ?? 0;
-  const remaining = timer.type === "countdown" ? timer.time : 0;
-  const elapsed = Math.max(0, durationSec - remaining);
-  const pct = durationSec > 0 ? Math.min(1, Math.max(0, elapsed / durationSec)) : 0;
-
-  // segment cutoffs (like your example): 70% green, 20% amber, 10% red
-  const cuts = useMemo(() => [
-    { color: "#28a745", width: 0.70 }, // green
-    { color: "#f39c12", width: 0.20 }, // amber
-    { color: "#e74c3c", width: 0.10 }, // red
-  ], []);
-
-  // caret position in %
+  // progress & time color
+  let elapsed = 0, remaining = 0, pct = 0;
+  if (duration > 0 && timer.type === "countdown") {
+    remaining = timer.time;
+    elapsed = Math.max(0, duration - remaining);
+    pct = Math.min(1, Math.max(0, elapsed / duration));
+  }
   const caretLeft = `${pct * 100}%`;
+
+  // remaining ratio for color swap
+  const rRatio = duration > 0 ? remaining / duration : 1;
+  let timeClass = "viewer-time viewer-time--green";
+  if (rRatio <= critP) timeClass = "viewer-time viewer-time--red";
+  else if (rRatio <= critP + warnP) timeClass = "viewer-time viewer-time--amber";
+
+  // message currently live
+  const liveMessage = messages.activeId
+    ? messages.items.find(m => m.id === messages.activeId)?.text
+    : null;
 
   return (
     <div className="viewer">
-      {/* header: title + notes */}
       {rd.showViewerTitleStripe && active && (
         <div className="viewer-header">
           <div className="viewer-dot" style={{ background: active.color || "#28a745" }} />
@@ -117,24 +118,27 @@ export default function Viewer() {
         </div>
       )}
 
-      {/* time */}
-      <div className="viewer-time">{formatAsHMS(timer.time)}</div>
+      <div className={timeClass}>{formatAsHMS(timer.time)}</div>
 
-      {/* progress bar */}
-      {durationSec > 0 && (
+      {duration > 0 && (
         <div className="viewer-progress">
           <div className="viewer-progress-track">
-            {cuts.map((c, i) => (
-              <div key={i} className="viewer-progress-seg" style={{ background: c.color, width: `${c.width * 100}%` }} />
-            ))}
+            <div className="viewer-progress-seg" style={{ background: "#28a745", width: `${greenP*100}%` }} />
+            <div className="viewer-progress-seg" style={{ background: "#f39c12", width: `${warnP*100}%` }} />
+            <div className="viewer-progress-seg" style={{ background: "#e74c3c", width: `${critP*100}%` }} />
             <div className="viewer-caret" style={{ left: caretLeft }} />
           </div>
         </div>
       )}
 
-      {!audioReady && (
-        <div className="sound-unlock">Click anywhere to enable sound</div>
+      {/* NEW: message overlay */}
+      {liveMessage && (
+        <div className="viewer-message">
+          {liveMessage}
+        </div>
       )}
+
+      {!audioReady && <div className="sound-unlock">Click anywhere to enable sound</div>}
     </div>
   );
 }

@@ -44,3 +44,18 @@
   width: 150px;
   text-align: center;
 }
+
+/* 3-column controller grid */
+.controller-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(420px, 1.2fr) minmax(280px, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background: #121212;
+  min-height: 100vh;
+  color: #fff;
+}
+.controller-grid .col { display:flex; flex-direction:column; gap:16px; }
+.controller-grid .left  {}
+.controller-grid .center {}
+.controller-grid .right {}

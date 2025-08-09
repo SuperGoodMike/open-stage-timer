@@ -1,0 +1,11 @@
+.timer-panel { background:#1b1b1b; border:1px solid #2a2a2a; border-radius:10px; padding:16px; color:#fff; }
+.timer-title { font-weight:700; margin-bottom:8px; opacity:.9; }
+.timer-big { font-size: clamp(3rem, 7vw, 9rem); font-weight:800; text-align:center; line-height:1; margin:12px 0 16px; color:#e6ffe6; text-shadow: 0 0 22px rgba(0,255,117,.18); }
+.timer-controls .row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.timer-controls .row label { width:80px; opacity:.8; }
+.timer-controls .transport button { font-size:1.05rem; padding:.55rem 1rem; }
+.timer-controls .nudges button { padding:.35rem .6rem; }
+.timer-controls input[type="number"] { width:120px; }
+.timer-controls select, .timer-controls input, .timer-controls button { background:#121212; color:#fff; border:1px solid #333; border-radius:6px; }
+.timer-controls button:hover { background:#0f0f0f; }
+.timer-controls .checkbox { gap:10px; }
