@@ -8,6 +8,15 @@ function mmss(sec) {
   return `${m}:${s}`;
 }
 
+// Use first non-empty line of notes as a short title (for viewer header)
+// Keeps your viewer stripe meaningful even though we removed Title from UI.
+function deriveTitle(notes) {
+  const firstLine = String(notes || "")
+    .split(/\r?\n/)[0]
+    .trim();
+  return firstLine.slice(0, 60) || "Untitled";
+}
+
 export default function RundownPanel() {
   const [rundown, setRundown] = useState({
     items: [],
@@ -17,7 +26,7 @@ export default function RundownPanel() {
   });
 
   const [draft, setDraft] = useState({
-    title: "",
+    // Title removed: we only keep Notes and infer title from it
     notes: "",
     startTime: "",
     durationSec: 60,
@@ -25,6 +34,10 @@ export default function RundownPanel() {
     warnPercent: 0.2,
     critPercent: 0.1,
   });
+
+  // Inline edit state for Notes
+  const [editId, setEditId] = useState(null);
+  const [editValue, setEditValue] = useState("");
 
   // subscribe to rundown updates
   useEffect(() => {
@@ -35,18 +48,19 @@ export default function RundownPanel() {
 
   // actions
   const add = () => {
-    const clean = {
-      title: draft.title.trim() || "Untitled",
-      notes: draft.notes,
+    const cleanNotes = draft.notes;
+    const payload = {
+      // title is auto-derived from notes
+      title: deriveTitle(cleanNotes),
+      notes: cleanNotes,
       startTime: draft.startTime,
       durationSec: Math.max(0, Number(draft.durationSec) || 0),
       color: draft.color,
       warnPercent: Math.max(0, Math.min(0.95, Number(draft.warnPercent) || 0.2)),
       critPercent: Math.max(0, Math.min(0.95, Number(draft.critPercent) || 0.1)),
     };
-    socket.emit("rundown_add_item", clean);
+    socket.emit("rundown_add_item", payload);
     setDraft({
-      title: "",
       notes: "",
       startTime: "",
       durationSec: 60,
@@ -128,6 +142,41 @@ export default function RundownPanel() {
     }
   };
 
+  // ==== Inline edit handlers for Notes ====
+  const beginEditNotes = (it) => {
+    setEditId(it.id);
+    setEditValue(String(it.notes || ""));
+  };
+
+  const cancelEditNotes = () => {
+    setEditId(null);
+    setEditValue("");
+  };
+
+  const saveEditNotes = (it) => {
+    const notes = String(editValue || "");
+    const patch = {
+      notes,
+      // keep viewer header meaningful:
+      title: deriveTitle(notes),
+    };
+    socket.emit("rundown_update_item", { id: it.id, patch });
+    cancelEditNotes();
+  };
+
+  const onEditKeyDown = (e, it) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditNotes();
+      return;
+    }
+    // Ctrl/Cmd + Enter to save
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      saveEditNotes(it);
+    }
+  };
+
   return (
     <div
       style={{
@@ -151,14 +200,16 @@ export default function RundownPanel() {
           minWidth: 0,
         }}
       >
-        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+        {/* Title removed — just Notes */}
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
           <label>
-            Title
+            Notes
             <br />
             <input
               style={{ width: "100%" }}
-              value={draft.title}
-              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              value={draft.notes}
+              onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
+              placeholder="e.g. Intro / Guest A / Q&A"
             />
           </label>
         </div>
@@ -190,18 +241,6 @@ export default function RundownPanel() {
               onChange={(e) =>
                 setDraft((d) => ({ ...d, durationSec: Number(e.target.value) }))
               }
-            />
-          </label>
-        </div>
-
-        <div style={{ flex: "1 1 240px", minWidth: 0 }}>
-          <label>
-            Notes
-            <br />
-            <input
-              style={{ width: "100%" }}
-              value={draft.notes}
-              onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
             />
           </label>
         </div>
@@ -293,6 +332,7 @@ export default function RundownPanel() {
         {rundown.items.map((it, i) => {
           const isActive = i === rundown.activeIndex;
           const isHover = hoverId === it.id;
+          const isEditing = editId === it.id;
 
           return (
             <div
@@ -341,14 +381,41 @@ export default function RundownPanel() {
               {/* Duration */}
               <div>{mmss(it.durationSec)}</div>
 
-              {/* Title + Notes */}
+              {/* Notes (inline editable) */}
               <div style={{ minWidth: 0 }}>
-                <div className="rundown-title" style={{ fontWeight: 600 }}>
-                  {it.title}
-                </div>
-                <div className="rundown-notes" style={{ opacity: 0.7, fontSize: 12 }}>
-                  {it.notes}
-                </div>
+                {isEditing ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <textarea
+                      autoFocus
+                      rows={3}
+                      style={{
+                        width: "100%",
+                        resize: "vertical",
+                        background: "#0f0f0f",
+                        color: "#fff",
+                        border: "1px solid #333",
+                        borderRadius: 6,
+                        padding: 6,
+                      }}
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => onEditKeyDown(e, it)}
+                      onBlur={() => saveEditNotes(it)}
+                    />
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                      <b>Ctrl/⌘ + Enter</b> to save • <b>Esc</b> to cancel
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="rundown-notes"
+                    style={{ opacity: 0.95, cursor: "text" }}
+                    onClick={() => beginEditNotes(it)}
+                    title="Click to edit notes"
+                  >
+                    {it.notes || <span style={{ opacity: 0.6 }}>(click to add notes)</span>}
+                  </div>
+                )}
               </div>
 
               {/* Warn% */}
