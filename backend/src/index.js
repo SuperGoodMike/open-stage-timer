@@ -132,3 +132,91 @@ io.on("connection", (socket) => {
     rundown = RD.removeItem(rundown, id);
     io.emit("rundown_update", rundown);
   });
+  socket.on("rundown_reorder", (ids) => {
+    rundown = RD.reorder(rundown, Array.isArray(ids) ? ids : []);
+    io.emit("rundown_update", rundown);
+  });
+  socket.on("rundown_set_auto_advance", (flag) => {
+    rundown.autoAdvance = !!flag;
+    io.emit("rundown_update", rundown);
+  });
+  socket.on("rundown_set_viewer_title_stripe", (flag) => {
+    rundown.showViewerTitleStripe = !!flag;
+    io.emit("rundown_update", rundown);
+  });
+  socket.on("rundown_start_item", (id) => {
+    const before = rundown;
+    rundown = RD.startItem(rundown, id);
+    if (rundown.activeIndex !== null) {
+      const item = rundown.items[rundown.activeIndex];
+      timer = { time: item.durationSec, running: true, type: "countdown" };
+    }
+    if (before !== rundown) broadcast();
+  });
+  socket.on("rundown_next", () => {
+    const nxt = RD.nextIndex(rundown);
+    if (nxt !== null) {
+      const id = rundown.items[nxt].id;
+      rundown = RD.startItem(rundown, id);
+      const item = rundown.items[nxt];
+      timer = { time: item.durationSec, running: true, type: "countdown" };
+      broadcast();
+    }
+  });
+  socket.on("rundown_prev", () => {
+    if (rundown.activeIndex === null) return;
+    const p = rundown.activeIndex - 1;
+    if (p >= 0) {
+      const id = rundown.items[p].id;
+      rundown = RD.startItem(rundown, id);
+      const item = rundown.items[p];
+      timer = { time: item.durationSec, running: true, type: "countdown" };
+      broadcast();
+    }
+  });
+
+  // ---- Messages API (NEW) ----
+  socket.on("message_add", (text) => {
+    const t = String(text || "").slice(0, 400);
+    const item = { id: mkid(), text: t };
+    messages.items = [...messages.items, item];
+    io.emit("messages_update", messages);
+  });
+
+  socket.on("message_update", ({ id, text }) => {
+    messages.items = messages.items.map((m) =>
+      m.id === id ? { ...m, text: String(text || "").slice(0, 400) } : m
+    );
+    io.emit("messages_update", messages);
+  });
+
+  socket.on("message_remove", (id) => {
+    messages.items = messages.items.filter((m) => m.id !== id);
+    if (messages.activeId === id) messages.activeId = null;
+    io.emit("messages_update", messages);
+  });
+
+  socket.on("message_reorder", (ids) => {
+    const map = new Map(messages.items.map((m) => [m.id, m]));
+    messages.items = (Array.isArray(ids) ? ids : [])
+      .map((id) => map.get(id))
+      .filter(Boolean);
+    io.emit("messages_update", messages);
+  });
+
+  socket.on("message_show", (id) => {
+    if (messages.items.find((m) => m.id === id)) messages.activeId = id;
+    io.emit("messages_update", messages);
+  });
+
+  socket.on("message_hide", () => {
+    messages.activeId = null;
+    io.emit("messages_update", messages);
+  });
+}); // <-- closes io.on("connection", ...)
+
+// ---- Start server ----
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () =>
+  console.log(`Backend running on http://localhost:${PORT}`)
+);
