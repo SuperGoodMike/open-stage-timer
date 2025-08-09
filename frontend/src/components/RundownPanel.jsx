@@ -305,14 +305,10 @@ export default function RundownPanel() {
   <label>
     <input
       type="checkbox"
-      checked={
-        typeof rundown.showViewerTitle === "boolean"
-          ? rundown.showViewerTitle
-          : !!rundown.showViewerTitleStripe /* fallback if split flags not present */
-      }
+      checked={!!rundown.showViewerTitle}
       onChange={(e) => socket.emit("rundown_set_viewer_title", e.target.checked)}
-    />
-    {" "}Viewer Title
+    />{" "}
+    Viewer Title
   </label>
 
   {/* Show Viewer Stripe (thin color bar at the very top) */}
@@ -320,7 +316,7 @@ export default function RundownPanel() {
     <input
       type="checkbox"
       checked={
-        typeof rundown.showViewerStripe === "boolean"
+        typeof rundown.showViewerStripe === "false"
           ? rundown.showViewerStripe
           : !!rundown.showViewerTitleStripe /* fallback if split flags not present */
       }
@@ -329,13 +325,13 @@ export default function RundownPanel() {
     {" "}Viewer Stripe
   </label>
 	<label>
-	 <input
-		type="checkbox"
-		checked={rundown.showViewerProgress ?? true}  // default true
-		onChange={(e) => socket.emit("rundown_set_viewer_progress", e.target.checked)}
-	/>{" "}
-  Progress bar
-</label>
+    <input
+      type="checkbox"
+      checked={!!rundown.showViewerProgress}
+      onChange={(e) => socket.emit("rundown_set_viewer_progress", e.target.checked)}
+    />{" "}
+    Progress bar
+  </label>
   {/* Auto-advance (unchanged) */}
   <label>
     <input
