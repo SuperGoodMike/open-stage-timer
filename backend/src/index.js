@@ -18,6 +18,10 @@ app.get("/", (_req, res) =>
 let timer = { time: 0, running: false, type: "countdown" };
 let settings = { beepEnabled: true };
 let rundown = RD.createDefaults();
+// Progress bar visible by default (server truth)
+if (typeof rundown.showViewerProgress !== "boolean") {
+  rundown.showViewerProgress = true;
+}
 
 // Ensure split flags exist once; fall back to legacy only if split is absent
 if (
@@ -91,6 +95,10 @@ setInterval(() => {
 // ---- Sockets ----
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
+  
+socket.on("rundown_set_viewer_progress", (flag) => {
+  rundown.showViewerProgress = !!flag;
+  io.emit("rundown_update", rundown);
 
   // initial state push
   socket.emit("timer_update", timer);
