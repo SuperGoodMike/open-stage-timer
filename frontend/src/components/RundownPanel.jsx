@@ -311,16 +311,7 @@ export default function RundownPanel() {
     Viewer Title
   </label>
 
-  {/* Show Viewer Stripe (thin color bar at the very top) */}
   <label>
-    <input
-      type="checkbox"
-      checked={!!rundown.showViewerStripe}
-      onChange={(e) => socket.emit("rundown_set_viewer_stripe", e.target.checked)}
-    />{" "}
-    Viewer Stripe
-  </label>
-	<label>
     <input
       type="checkbox"
       checked={!!rundown.showViewerProgress}

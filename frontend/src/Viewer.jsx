@@ -142,11 +142,16 @@ export default function Viewer() {
 
   const liveMessage = messages.activeId ? messages.items.find((m) => m.id === messages.activeId)?.text : null;
 
-  // split flags with legacy fallback ONLY if split flags are absent
-  const hasSplit =
-    typeof rd.showViewerTitle === "boolean" || typeof rd.showViewerStripe === "boolean";
-  const showTitle = hasSplit ? !!rd.showViewerTitle : !!rd.showViewerTitleStripe;
-  const showStripe = hasSplit ? !!rd.showViewerStripe : !!rd.showViewerTitleStripe;
+  // flags with legacy fallback ONLY if showViewerTitle is absent
+const showTitle = typeof rd.showViewerTitle === "boolean"
+  ? !!rd.showViewerTitle
+  : !!rd.showViewerTitleStripe;
+
+// new flag for progress bar
+const showProgress = typeof rd.showViewerProgress === "boolean"
+  ? !!rd.showViewerProgress
+  : true; // default to true if not set
+
 
   // NEW: independent progress-bar toggle (default true)
   const showProgress =
