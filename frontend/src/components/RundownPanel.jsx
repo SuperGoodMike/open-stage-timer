@@ -300,27 +300,43 @@ export default function RundownPanel() {
       </div>
 
       {/* toggles */}
-<div style={{ display:"flex", gap:16, alignItems:"center", marginTop:10, flexWrap:"wrap" }}>
+<div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+  {/* Show Viewer Title (header text) */}
   <label>
     <input
       type="checkbox"
-      checked={!!rundown.showViewerTitle}
-      onChange={(e)=>socket.emit("rundown_set_viewer_title", e.target.checked)}
-    /> Viewer Title
+      checked={
+        typeof rundown.showViewerTitle === "boolean"
+          ? rundown.showViewerTitle
+          : !!rundown.showViewerTitleStripe /* fallback if split flags not present */
+      }
+      onChange={(e) => socket.emit("rundown_set_viewer_title", e.target.checked)}
+    />
+    {" "}Viewer Title
   </label>
+
+  {/* Show Viewer Stripe (thin color bar at the very top) */}
   <label>
     <input
       type="checkbox"
-      checked={!!rundown.showViewerStripe}
-      onChange={(e)=>socket.emit("rundown_set_viewer_stripe", e.target.checked)}
-    /> Viewer Stripe
+      checked={
+        typeof rundown.showViewerStripe === "boolean"
+          ? rundown.showViewerStripe
+          : !!rundown.showViewerTitleStripe /* fallback if split flags not present */
+      }
+      onChange={(e) => socket.emit("rundown_set_viewer_stripe", e.target.checked)}
+    />
+    {" "}Viewer Stripe
   </label>
+
+  {/* Auto-advance (unchanged) */}
   <label>
     <input
       type="checkbox"
       checked={!!rundown.autoAdvance}
-      onChange={(e)=>socket.emit("rundown_set_auto_advance", e.target.checked)}
-    /> Auto-advance
+      onChange={(e) => socket.emit("rundown_set_auto_advance", e.target.checked)}
+    />
+    {" "}Auto-advance
   </label>
 </div>
 
