@@ -123,3 +123,24 @@
   font-size: 14px; opacity: 0.9;
   pointer-events: none;
 }
+/* Full-screen container (no flip here) */
+.viewer {
+  position: relative;
+  height: 100vh;
+  background: #111;
+  color: #fff;
+  overflow: hidden;
+}
+
+/* The stage holds the layout and receives the flip transform */
+.viewer-stage {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "header"
+    "time"
+    "progress";
+}
+
+/* Keep your existing .viewer-header, .viewer-time, .viewer-progress styles */

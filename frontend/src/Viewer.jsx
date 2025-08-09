@@ -157,42 +157,34 @@ export default function Viewer() {
   const scaleX = flipH ? -1 : 1;
   const scaleY = flipV ? -1 : 1;
 
-  return (
-    <div
-      ref={rootRef}
-      className="viewer"
-      style={{ transform: `scale(${scaleX}, ${scaleY})` }}
-    >
-      {/* Controls overlay (not mirrored) */}
-      <div className="viewer-controls" style={{ transform: `scale(${1/scaleX}, ${1/scaleY})` }}>
-        <button className="vc-btn" onClick={toggleFlipV} title="Mirror vertically (V)">
-          {/* vertical mirror icon */}
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M12 2v20M7 7l5-5 5 5M7 17l5 5 5-5" />
-          </svg>
-        </button>
-        <button className="vc-btn" onClick={toggleFlipH} title="Mirror horizontally (H)">
-          {/* horizontal mirror icon */}
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5" />
-          </svg>
-        </button>
-        <button className="vc-btn" onClick={toggleFullscreen} title="Toggle fullscreen (F)">
-          {/* fullscreen icon */}
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-          </svg>
-        </button>
-      </div>
+return (
+  <div ref={rootRef} className="viewer">
+    {/* Controls overlay (no transforms needed) */}
+    <div className="viewer-controls">
+      <button className="vc-btn" onClick={toggleFlipV} title="Mirror vertically (V)">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2v20M7 7l5-5 5 5M7 17l5 5 5-5"/></svg>
+      </button>
+      <button className="vc-btn" onClick={toggleFlipH} title="Mirror horizontally (H)">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></svg>
+      </button>
+      <button className="vc-btn" onClick={toggleFullscreen} title="Toggle fullscreen (F)">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
 
+    {/* NEW: stage gets flipped, not the fullscreen container */}
+    <div
+      className="viewer-stage"
+      style={{ transform: `scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})` }}
+    >
       {rd.showViewerTitleStripe && active && (
         <div className="viewer-header">
           <div className="viewer-dot" style={{ background: active.color || "#28a745" }} />
           <div className="viewer-title">{active.title}</div>
           {active.notes ? <div className="viewer-notes">{active.notes}</div> : null}
-      </div>)}
+        </div>
+      )}
 
-      {/* CENTERED time */}
       <div className={timeClass}>{formatAsHMS(timer.time)}</div>
 
       {duration > 0 && (
@@ -201,15 +193,14 @@ export default function Viewer() {
             <div className="viewer-progress-seg" style={{ background: "#28a745", width: `${greenP*100}%` }} />
             <div className="viewer-progress-seg" style={{ background: "#f39c12", width: `${warnP*100}%` }} />
             <div className="viewer-progress-seg" style={{ background: "#e74c3c", width: `${critP*100}%` }} />
-            <div className="viewer-caret" style={{ left: caretLeft }} />
+            <div className="viewer-caret" style={{ left: `${pct * 100}%` }} />
           </div>
         </div>
       )}
-
-      {/* message overlay */}
-      {liveMessage && <div className="viewer-message">{liveMessage}</div>}
-
-      {!audioReady && <div className="sound-unlock">Click anywhere to enable sound</div>}
     </div>
-  );
-}
+
+    {/* message overlay (not flipped) */}
+    {liveMessage && <div className="viewer-message">{liveMessage}</div>}
+    {!audioReady && <div className="sound-unlock">Click anywhere to enable sound</div>}
+  </div>
+);
