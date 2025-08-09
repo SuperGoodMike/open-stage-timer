@@ -132,7 +132,10 @@ export default function Viewer() {
   } else if (duration > 0 && timer.type === "countup") {
     pct = Math.min(1, timer.time / duration);
   }
-  const caretLeft = `${pct * 100}%`;
+
+  // caret horizontal position; mirror when flipH is on
+  const caretPct = pct;
+  const caretLeft = flipH ? `${(1 - caretPct) * 100}%` : `${caretPct * 100}%`;
 
   // digit color by remaining ratio
   const rRatio = duration > 0 ? (remaining > 0 ? remaining / duration : 0) : 1;
@@ -142,13 +145,46 @@ export default function Viewer() {
 
   const liveMessage = messages.activeId ? messages.items.find((m) => m.id === messages.activeId)?.text : null;
 
-  // keep Title (with legacy fallback) — Stripe removed
+  // keep Title (with legacy fallback)
   const showTitle =
     typeof rd.showViewerTitle === "boolean" ? !!rd.showViewerTitle : !!rd.showViewerTitleStripe;
 
   // independent progress-bar toggle (default true)
   const showProgress =
     typeof rd.showViewerProgress === "boolean" ? rd.showViewerProgress : true;
+
+  // Derived positioning/orientation for mirrored fixed elements
+  const barAtTop = !!flipV;            // when vertically mirrored, bar/message move to top
+  const caretPointsUp = !!flipV;       // caret always points toward the bar
+
+  // Inline styles for caret orientation + position
+  const caretStyle = {
+    left: caretLeft,
+    // vertical position
+    bottom: barAtTop ? "auto" : "44px",
+    top: barAtTop ? "44px" : "auto",
+    // triangle orientation
+    borderTop: caretPointsUp ? "none" : "24px solid #fff",
+    borderBottom: caretPointsUp ? "24px solid #fff" : "none",
+  };
+
+  // Inline styles for progress bar and message vertical placement
+  const progressStyle = {
+    left: 0,
+    right: 0,
+    bottom: barAtTop ? "auto" : 0,
+    top: barAtTop ? 0 : "auto",
+    ["--green"]: `${Math.max(0, greenP)}fr`,
+    ["--warn"]: `${Math.max(0, warnP)}fr`,
+    ["--crit"]: `${Math.max(0, critP)}fr`,
+  };
+
+  const messageStyle = {
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: barAtTop ? "auto" : "68px",
+    top: barAtTop ? "68px" : "auto",
+  };
 
   return (
     <div ref={rootRef} className="viewer">
@@ -192,19 +228,11 @@ export default function Viewer() {
         <div className={timeClass}>{formatSmart(timer.time)}</div>
       </div>
 
-      {/* bottom progress + down-pointing caret (fixed, full width) */}
+      {/* bottom/top progress + caret (fixed, full width, mirrors with flips) */}
       {duration > 0 && showProgress && (
         <>
-          <div className="viewer-caret" style={{ left: caretLeft }} />
-          <div
-            className="viewer-progress"
-            style={{
-              // feed fractions to the grid
-              ["--green"]: `${Math.max(0, greenP)}fr`,
-              ["--warn"]: `${Math.max(0, warnP)}fr`,
-              ["--crit"]: `${Math.max(0, critP)}fr`,
-            }}
-          >
+          <div className="viewer-caret" style={caretStyle} />
+          <div className="viewer-progress" style={progressStyle}>
             <div className="viewer-progress-track">
               <div className="viewer-progress-seg seg-green" />
               <div className="viewer-progress-seg seg-warn" />
@@ -214,8 +242,9 @@ export default function Viewer() {
         </>
       )}
 
-      {/* overlay message (not flipped) */}
-      {liveMessage && <div className="viewer-message">{liveMessage}</div>}
+      {/* overlay message (fixed, mirrors vertically) */}
+      {liveMessage && <div className="viewer-message" style={messageStyle}>{liveMessage}</div>}
+
       {!audioReady && <div className="sound-unlock">Click anywhere to enable sound</div>}
     </div>
   );
