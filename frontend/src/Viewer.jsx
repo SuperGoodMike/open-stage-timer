@@ -147,12 +147,6 @@ const showTitle = typeof rd.showViewerTitle === "boolean"
   ? !!rd.showViewerTitle
   : !!rd.showViewerTitleStripe;
 
-// new flag for progress bar
-const showProgress = typeof rd.showViewerProgress === "boolean"
-  ? !!rd.showViewerProgress
-  : true; // default to true if not set
-
-
   // NEW: independent progress-bar toggle (default true)
   const showProgress =
     typeof rd.showViewerProgress === "boolean" ? rd.showViewerProgress : true;
