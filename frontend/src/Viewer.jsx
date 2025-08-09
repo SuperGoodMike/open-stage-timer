@@ -11,13 +11,18 @@ function formatAsHMS(s){
 }
 
 export default function Viewer() {
+  const rootRef = useRef(null);
+
   const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
   const [rd, setRd] = useState({ items: [], activeIndex: null, showViewerTitleStripe: false });
   const [beepEnabled, setBeepEnabled] = useState(true);
   const [audioReady, setAudioReady] = useState(false);
-
-  // NEW: messages state (for overlay)
   const [messages, setMessages] = useState({ items: [], activeId: null });
+
+  // NEW: teleprompter flips + fullscreen
+  const [flipH, setFlipH] = useState(() => localStorage.getItem("viewer.flipH")==="1");
+  const [flipV, setFlipV] = useState(() => localStorage.getItem("viewer.flipV")==="1");
+  const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
 
   const prev = useRef(0);
   const audioCtx = useRef(null);
@@ -67,20 +72,61 @@ export default function Viewer() {
     };
     const onS = (s) => setBeepEnabled(!!s?.beepEnabled);
     const onR = (r) => setRd(r);
-    const onM = (m) => setMessages(m);                 // NEW
+    const onM = (m) => setMessages(m);
 
     socket.on("timer_update", onT);
     socket.on("settings_update", onS);
     socket.on("rundown_update", onR);
-    socket.on("messages_update", onM);                 // NEW
+    socket.on("messages_update", onM);
 
     return () => {
       socket.off("timer_update", onT);
       socket.off("settings_update", onS);
       socket.off("rundown_update", onR);
-      socket.off("messages_update", onM);              // NEW
+      socket.off("messages_update", onM);
     };
   }, [audioReady, beepEnabled]);
+
+  // fullscreen listeners
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  // hotkeys: V/H/F
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key.toLowerCase() === "v") { toggleFlipV(); }
+      else if (e.key.toLowerCase() === "h") { toggleFlipH(); }
+      else if (e.key.toLowerCase() === "f") { toggleFullscreen(); }
+      else if (e.key === "Escape" && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flipH, flipV]);
+
+  const toggleFlipH = () => {
+    const v = !flipH;
+    setFlipH(v);
+    localStorage.setItem("viewer.flipH", v ? "1" : "0");
+  };
+  const toggleFlipV = () => {
+    const v = !flipV;
+    setFlipV(v);
+    localStorage.setItem("viewer.flipV", v ? "1" : "0");
+  };
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await (rootRef.current || document.documentElement).requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      /* ignore */
+    }
+  };
 
   const active = useMemo(() => rd.activeIndex!==null ? rd.items[rd.activeIndex] : null, [rd]);
   const duration = active?.durationSec ?? 0;
@@ -103,21 +149,50 @@ export default function Viewer() {
   if (rRatio <= critP) timeClass = "viewer-time viewer-time--red";
   else if (rRatio <= critP + warnP) timeClass = "viewer-time viewer-time--amber";
 
-  // message currently live
   const liveMessage = messages.activeId
     ? messages.items.find(m => m.id === messages.activeId)?.text
     : null;
 
+  // transform for teleprompter mirrors
+  const scaleX = flipH ? -1 : 1;
+  const scaleY = flipV ? -1 : 1;
+
   return (
-    <div className="viewer">
+    <div
+      ref={rootRef}
+      className="viewer"
+      style={{ transform: `scale(${scaleX}, ${scaleY})` }}
+    >
+      {/* Controls overlay (not mirrored) */}
+      <div className="viewer-controls" style={{ transform: `scale(${1/scaleX}, ${1/scaleY})` }}>
+        <button className="vc-btn" onClick={toggleFlipV} title="Mirror vertically (V)">
+          {/* vertical mirror icon */}
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 2v20M7 7l5-5 5 5M7 17l5 5 5-5" />
+          </svg>
+        </button>
+        <button className="vc-btn" onClick={toggleFlipH} title="Mirror horizontally (H)">
+          {/* horizontal mirror icon */}
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5" />
+          </svg>
+        </button>
+        <button className="vc-btn" onClick={toggleFullscreen} title="Toggle fullscreen (F)">
+          {/* fullscreen icon */}
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+          </svg>
+        </button>
+      </div>
+
       {rd.showViewerTitleStripe && active && (
         <div className="viewer-header">
           <div className="viewer-dot" style={{ background: active.color || "#28a745" }} />
           <div className="viewer-title">{active.title}</div>
           {active.notes ? <div className="viewer-notes">{active.notes}</div> : null}
-        </div>
-      )}
+      </div>)}
 
+      {/* CENTERED time */}
       <div className={timeClass}>{formatAsHMS(timer.time)}</div>
 
       {duration > 0 && (
@@ -131,12 +206,8 @@ export default function Viewer() {
         </div>
       )}
 
-      {/* NEW: message overlay */}
-      {liveMessage && (
-        <div className="viewer-message">
-          {liveMessage}
-        </div>
-      )}
+      {/* message overlay */}
+      {liveMessage && <div className="viewer-message">{liveMessage}</div>}
 
       {!audioReady && <div className="sound-unlock">Click anywhere to enable sound</div>}
     </div>
