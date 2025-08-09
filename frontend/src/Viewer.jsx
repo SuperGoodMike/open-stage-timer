@@ -179,12 +179,13 @@ export default function Viewer() {
     ["--crit"]: `${Math.max(0, critP)}fr`,
   };
 
-  const messageStyle = {
-    left: "50%",
-    transform: "translateX(-50%)",
-    bottom: barAtTop ? "auto" : "68px",
-    top: barAtTop ? "68px" : "auto",
-  };
+const messageStyle = {
+  left: "50%",
+  bottom: barAtTop ? "auto" : "68px",
+  top: barAtTop ? "68px" : "auto",
+  transform: `translateX(-50%) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`,
+  transformOrigin: "center",
+};
 
   return (
     <div ref={rootRef} className="viewer">
