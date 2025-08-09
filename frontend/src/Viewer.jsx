@@ -155,16 +155,19 @@ export default function Viewer() {
         <div className={timeClass}>{formatSmart(timer.time)}</div>
 
         {/* bottom progress */}
-        {duration > 0 && (
-          <div className="viewer-progress">
-            <div className="viewer-progress-track">
-              <div className="viewer-progress-seg" style={{ background: "#28a745", width: `${greenP*100}%` }} />
-              <div className="viewer-progress-seg" style={{ background: "#f39c12", width: `${warnP*100}%` }} />
-              <div className="viewer-progress-seg" style={{ background: "#e74c3c", width: `${critP*100}%` }} />
-              <div className="viewer-caret" style={{ left: caretLeft }} />
-            </div>
-          </div>
-        )}
+		{duration > 0 && (
+		<>
+		{/* caret first so it sits above the bar */}
+		<div className="viewer-caret" style={{ left: caretLeft }} />
+		<div className="viewer-progress">
+		 <div className="viewer-progress-track">
+			<div className="viewer-progress-seg" style={{ background: "#28a745", width: `${greenP*100}%` }} />
+			<div className="viewer-progress-seg" style={{ background: "#f39c12", width: `${warnP*100}%` }} />
+			<div className="viewer-progress-seg" style={{ background: "#e74c3c", width: `${critP*100}%` }} />
+		 </div>
+		</div>
+	</>
+)}
       </div>
 
       {/* overlay message (not flipped) */}
