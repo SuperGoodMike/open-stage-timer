@@ -39,7 +39,7 @@ export default function RundownPanel() {
   };
 
   return (
-    <div style={{ background: "#1f1f1f", color: "#fff", padding: 12, borderRadius: 8, marginBottom: 16 }}>
+    <div style={{ background: "#1f1f1f", color: "#fff", padding: 12, borderRadius: 8, marginBottom: 16, border: "1px solid #2a2a2a", maxWidth: "100%", overflow: "hidden" }}>
       {/* Add form */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 140px 1fr 110px 110px 110px auto", gap: 12, alignItems: "end" }}>
         <div>

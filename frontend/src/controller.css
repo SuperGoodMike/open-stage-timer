@@ -55,7 +55,7 @@
   min-height: 100vh;
   color: #fff;
 }
-.controller-grid .col { display:flex; flex-direction:column; gap:16px; }
+.controller-grid .col { display:flex; flex-direction:column; gap:16px; min-width: 0; overflow: hidden; }
 .controller-grid .left  {}
 .controller-grid .center {}
 .controller-grid .right {}
