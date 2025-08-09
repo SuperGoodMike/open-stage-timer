@@ -18,31 +18,33 @@ app.get("/", (_req, res) =>
 let timer = { time: 0, running: false, type: "countdown" };
 let settings = { beepEnabled: true };
 let rundown = RD.createDefaults();
-// Progress bar visible by default (server truth)
-if (typeof rundown.showViewerProgress !== "boolean") {
-  rundown.showViewerProgress = true;
-}
 
-// Ensure split flags exist once; fall back to legacy only if split is absent
+// Initialize flags (server is source of truth)
+if (typeof rundown.showViewerProgress !== "boolean") {
+  rundown.showViewerProgress = true; // progress bar ON by default
+}
 if (
   typeof rundown.showViewerTitle !== "boolean" ||
   typeof rundown.showViewerStripe !== "boolean"
 ) {
+  // legacy fallback only if split flags missing
   const legacy = !!rundown.showViewerTitleStripe;
-  rundown.showViewerTitle  = typeof rundown.showViewerTitle  === "boolean" ? rundown.showViewerTitle  : legacy;
-  rundown.showViewerStripe = typeof rundown.showViewerStripe === "boolean" ? rundown.showViewerStripe : legacy;
+  rundown.showViewerTitle =
+    typeof rundown.showViewerTitle === "boolean" ? rundown.showViewerTitle : legacy;
+  rundown.showViewerStripe =
+    typeof rundown.showViewerStripe === "boolean" ? rundown.showViewerStripe : legacy;
 }
 
 // NEW: messages state
 let messages = {
-  items: [],
-  activeId: null
+  items: [],       // [{id, text}]
+  activeId: null,  // which message is shown on the viewer (null = none)
 };
 
-// helper: id generator for messages
+// helper: id generator
 const mkid = () => Math.random().toString(36).slice(2, 9);
 
-// single place to broadcast everything
+// broadcast helper
 function broadcast() {
   io.emit("timer_update", timer);
   io.emit("settings_update", settings);
@@ -95,15 +97,20 @@ setInterval(() => {
 // ---- Sockets ----
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
-  
-io.on("connection", (socket) => {
-  console.log("client connected:", socket.id);
 
-  // progress bar toggle
+  // === View flags ===
   socket.on("rundown_set_viewer_progress", (flag) => {
     rundown.showViewerProgress = !!flag;
     io.emit("rundown_update", rundown);
   });
+
+  socket.on("rundown_set_viewer_title", (flag) => {
+    rundown.showViewerTitle = !!flag;
+    io.emit("rundown_update", rundown);
+  });
+
+  // (If you keep a separate top stripe in the future, add its handler here.)
+  // We removed the old combined 'rundown_set_viewer_title_stripe' on purpose.
 
   // initial state push
   socket.emit("timer_update", timer);
@@ -122,18 +129,25 @@ io.on("connection", (socket) => {
   });
 
   socket.on("pause_timer", () => { timer.running = false; broadcast(); });
-  socket.on("reset_timer", () => { timer.running = false; timer.time = 0; broadcast(); });
+
+  socket.on("reset_timer", () => {
+    timer.running = false;
+    timer.time = 0;
+    broadcast();
+  });
+
   socket.on("set_timer", (sec) => {
     const v = Number(sec);
     if (!Number.isNaN(v) && v >= 0) timer.time = Math.floor(v);
     broadcast();
   });
+
   socket.on("set_mode", (mode) => {
     if (["countdown", "countup", "clock"].includes(mode)) timer.type = mode;
     broadcast();
   });
 
-  // beep setting
+  // ===== Settings =====
   socket.on("set_beep_enabled", (flag) => {
     settings.beepEnabled = !!flag;
     io.emit("settings_update", settings);
@@ -162,11 +176,6 @@ io.on("connection", (socket) => {
 
   socket.on("rundown_set_auto_advance", (flag) => {
     rundown.autoAdvance = !!flag;
-    io.emit("rundown_update", rundown);
-  });
-
-  socket.on("rundown_set_viewer_title", (flag) => {
-    rundown.showViewerTitle = !!flag;
     io.emit("rundown_update", rundown);
   });
 
