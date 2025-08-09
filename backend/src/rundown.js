@@ -1,16 +1,33 @@
-// Simple in‑memory rundown manager
+// Simple in-memory rundown manager
 const nanoid = () => Math.random().toString(36).slice(2, 9);
+
+function clamp01(n) { n = Number(n); if (Number.isNaN(n)) return 0; return Math.max(0, Math.min(1, n)); }
 
 function createDefaults() {
   return {
-    items: [], // {id,title,notes,startTime,durationSec,status:'pending'|'running'|'done',color}
+    items: [], // {id,title,notes,startTime,durationSec,status,color,warnPercent,critPercent}
     activeIndex: null,
-    autoAdvance: false, // default OFF
-    showViewerTitleStripe: false, // controller toggle
+    autoAdvance: false,              // default OFF
+    showViewerTitleStripe: false,    // controller toggle
   };
 }
 
+function normalizePercents({ warnPercent, critPercent }) {
+  let warn = clamp01(warnPercent);
+  let crit = clamp01(critPercent);
+  if (warn + crit > 0.95) { // keep a little space for green
+    const scale = 0.95 / (warn + crit);
+    warn = Number((warn * scale).toFixed(3));
+    crit = Number((crit * scale).toFixed(3));
+  }
+  return { warnPercent: warn, critPercent: crit };
+}
+
 function addItem(state, partial) {
+  const { warnPercent, critPercent } = normalizePercents({
+    warnPercent: partial.warnPercent ?? 0.20, // 20%
+    critPercent: partial.critPercent ?? 0.10, // 10%
+  });
   const item = {
     id: nanoid(),
     title: partial.title || "Untitled",
@@ -18,7 +35,9 @@ function addItem(state, partial) {
     startTime: partial.startTime || "",
     durationSec: Math.max(0, Number(partial.durationSec) || 0),
     status: "pending",
-    color: partial.color || "#2ecc71", // green by default
+    color: partial.color || "#2ecc71",
+    warnPercent,
+    critPercent,
   };
   return { ...state, items: [...state.items, item] };
 }
@@ -26,7 +45,17 @@ function addItem(state, partial) {
 function updateItem(state, id, partial) {
   return {
     ...state,
-    items: state.items.map((it) => (it.id === id ? { ...it, ...partial } : it)),
+    items: state.items.map((it) => {
+      if (it.id !== id) return it;
+      const next = { ...it, ...partial };
+      if ("warnPercent" in partial || "critPercent" in partial) {
+        const p = normalizePercents(next);
+        next.warnPercent = p.warnPercent;
+        next.critPercent = p.critPercent;
+      }
+      if ("durationSec" in partial) next.durationSec = Math.max(0, Number(partial.durationSec) || 0);
+      return next;
+    }),
   };
 }
 
