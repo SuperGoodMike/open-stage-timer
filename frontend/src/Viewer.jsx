@@ -30,7 +30,7 @@ export default function Viewer() {
   const prev = useRef(0);
   const audioCtx = useRef(null);
 
-  // Unlock audio
+  // unlock audio once
   useEffect(() => {
     const unlock = () => {
       try {
@@ -71,7 +71,7 @@ export default function Viewer() {
     } catch {}
   };
 
-  // Sockets
+  // sockets
   useEffect(() => {
     const onT = (t) => {
       if (audioReady && beepEnabled && t.type === "countdown" && prev.current > 0 && t.time === 0) beep();
@@ -95,7 +95,7 @@ export default function Viewer() {
     };
   }, [audioReady, beepEnabled]);
 
-  // Controls
+  // controls
   const toggleFlipH = () => {
     const v = !flipH;
     setFlipH(v);
@@ -108,12 +108,15 @@ export default function Viewer() {
   };
   const toggleFullscreen = async () => {
     try {
-      if (!document.fullscreenElement) await (rootRef.current || document.documentElement).requestFullscreen();
-      else await document.exitFullscreen();
+      if (!document.fullscreenElement) {
+        await (rootRef.current || document.documentElement).requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
     } catch {}
   };
 
-  // Active item + progress
+  // active item + progress math
   const active = useMemo(() => (rd.activeIndex !== null ? rd.items[rd.activeIndex] : null), [rd]);
   const duration = active?.durationSec ?? 0;
 
@@ -121,8 +124,8 @@ export default function Viewer() {
   const critP = Math.max(0, Math.min(1, active?.critPercent ?? 0.1));
   const greenP = Math.max(0, 1 - (warnP + critP));
 
-  let remaining = 0,
-    pct = 0;
+  let remaining = 0;
+  let pct = 0;
   if (duration > 0 && timer.type === "countdown") {
     remaining = timer.time;
     pct = Math.min(1, Math.max(0, (duration - remaining) / duration));
@@ -131,7 +134,7 @@ export default function Viewer() {
   }
   const caretLeft = `${pct * 100}%`;
 
-  // Digit color by remaining ratio
+  // digit color by remaining ratio
   const rRatio = duration > 0 ? (remaining > 0 ? remaining / duration : 0) : 1;
   let timeClass = "viewer-time viewer-time--green";
   if (rRatio <= critP) timeClass = "viewer-time viewer-time--red";
@@ -139,13 +142,15 @@ export default function Viewer() {
 
   const liveMessage = messages.activeId ? messages.items.find((m) => m.id === messages.activeId)?.text : null;
 
-  // NEW: separate toggles with legacy fallback
-  const showTitle = rd.showViewerTitle ?? rd.showViewerTitleStripe ?? false;
-  const showStripe = rd.showViewerStripe ?? rd.showViewerTitleStripe ?? false;
+  // split flags with legacy fallback ONLY if split flags are absent
+  const hasSplit =
+    typeof rd.showViewerTitle === "boolean" || typeof rd.showViewerStripe === "boolean";
+  const showTitle = hasSplit ? !!rd.showViewerTitle : !!rd.showViewerTitleStripe;
+  const showStripe = hasSplit ? !!rd.showViewerStripe : !!rd.showViewerTitleStripe;
 
   return (
     <div ref={rootRef} className="viewer">
-      {/* Overlay controls */}
+      {/* overlay controls */}
       <div className="viewer-controls">
         <button className="vc-btn" onClick={toggleFlipV} title="Mirror vertically (V)">
           <svg width="20" height="20" viewBox="0 0 24 24">
@@ -164,15 +169,26 @@ export default function Viewer() {
         </button>
       </div>
 
-      {/* Stage gets flipped (works in fullscreen) */}
-      <div className="viewer-stage" style={{ transform: `scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})` }}>
-        {/* top color stripe */}
-        {showStripe && active && <div className="viewer-topstripe" style={{ background: active.color || "#28a745" }} />}
+      {/* stage gets flipped (works in fullscreen) */}
+      <div
+        className="viewer-stage"
+        style={{ transform: `scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})` }}
+      >
+        {/* optional stripe */}
+        {showStripe && active && (
+          <div
+            className="viewer-topstripe"
+            style={{ background: active.color || "#28a745" }}
+          />
+        )}
 
         {/* optional header with title/notes */}
         {showTitle && active && (
           <div className="viewer-header">
-            <div className="viewer-dot" style={{ background: active.color || "#28a745" }} />
+            <div
+              className="viewer-dot"
+              style={{ background: active.color || "#28a745" }}
+            />
             <div className="viewer-title">{active.title}</div>
             {active.notes ? <div className="viewer-notes">{active.notes}</div> : null}
           </div>
@@ -181,15 +197,24 @@ export default function Viewer() {
         {/* centered time */}
         <div className={timeClass}>{formatSmart(timer.time)}</div>
 
-        {/* bottom progress + caret */}
+        {/* bottom progress + down-pointing caret */}
         {duration > 0 && (
           <>
             <div className="viewer-caret" style={{ left: caretLeft }} />
             <div className="viewer-progress">
               <div className="viewer-progress-track">
-                <div className="viewer-progress-seg" style={{ background: "#28a745", width: `${greenP * 100}%` }} />
-                <div className="viewer-progress-seg" style={{ background: "#f39c12", width: `${warnP * 100}%` }} />
-                <div className="viewer-progress-seg" style={{ background: "#e74c3c", width: `${critP * 100}%` }} />
+                <div
+                  className="viewer-progress-seg"
+                  style={{ background: "#28a745", width: `${greenP * 100}%` }}
+                />
+                <div
+                  className="viewer-progress-seg"
+                  style={{ background: "#f39c12", width: `${warnP * 100}%` }}
+                />
+                <div
+                  className="viewer-progress-seg"
+                  style={{ background: "#e74c3c", width: `${critP * 100}%` }}
+                />
               </div>
             </div>
           </>

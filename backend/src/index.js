@@ -19,14 +19,22 @@ let timer = { time: 0, running: false, type: "countdown" };
 let settings = { beepEnabled: true };
 let rundown = RD.createDefaults();
 
-// NEW: split viewer flags with backward-compat to old combined flag
-rundown.showViewerTitle  = rundown.showViewerTitle  ?? !!rundown.showViewerTitleStripe;
-rundown.showViewerStripe = rundown.showViewerStripe ?? !!rundown.showViewerTitleStripe;
+// Ensure split title/stripe flags exist (fallback to legacy combined flag)
+if (
+  typeof rundown.showViewerTitle !== "boolean" ||
+  typeof rundown.showViewerStripe !== "boolean"
+) {
+  const legacy = !!rundown.showViewerTitleStripe;
+  rundown.showViewerTitle =
+    typeof rundown.showViewerTitle === "boolean" ? rundown.showViewerTitle : legacy;
+  rundown.showViewerStripe =
+    typeof rundown.showViewerStripe === "boolean" ? rundown.showViewerStripe : legacy;
+}
 
-// NEW: messages state (for controller right column + viewer overlay)
+// NEW: messages state
 let messages = {
-  items: [],     // [{ id, text }]
-  activeId: null // id of message currently shown on viewer (null = none)
+  items: [],
+  activeId: null
 };
 
 // helper: id generator for messages
