@@ -315,14 +315,10 @@ export default function RundownPanel() {
   <label>
     <input
       type="checkbox"
-      checked={
-        typeof rundown.showViewerStripe === "false"
-          ? rundown.showViewerStripe
-          : !!rundown.showViewerTitleStripe /* fallback if split flags not present */
-      }
+      checked={!!rundown.showViewerStripe}
       onChange={(e) => socket.emit("rundown_set_viewer_stripe", e.target.checked)}
-    />
-    {" "}Viewer Stripe
+    />{" "}
+    Viewer Stripe
   </label>
 	<label>
     <input
