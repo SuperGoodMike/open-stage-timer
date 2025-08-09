@@ -19,16 +19,14 @@ let timer = { time: 0, running: false, type: "countdown" };
 let settings = { beepEnabled: true };
 let rundown = RD.createDefaults();
 
-// Ensure split title/stripe flags exist (fallback to legacy combined flag)
+// Ensure split flags exist once; fall back to legacy only if split is absent
 if (
   typeof rundown.showViewerTitle !== "boolean" ||
   typeof rundown.showViewerStripe !== "boolean"
 ) {
   const legacy = !!rundown.showViewerTitleStripe;
-  rundown.showViewerTitle =
-    typeof rundown.showViewerTitle === "boolean" ? rundown.showViewerTitle : legacy;
-  rundown.showViewerStripe =
-    typeof rundown.showViewerStripe === "boolean" ? rundown.showViewerStripe : legacy;
+  rundown.showViewerTitle  = typeof rundown.showViewerTitle  === "boolean" ? rundown.showViewerTitle  : legacy;
+  rundown.showViewerStripe = typeof rundown.showViewerStripe === "boolean" ? rundown.showViewerStripe : legacy;
 }
 
 // NEW: messages state
@@ -155,23 +153,23 @@ io.on("connection", (socket) => {
   });
 
   // NEW: split toggles
-  socket.on("rundown_set_viewer_title", (flag) => {
+  socket.on("rundown_set_viewer_title",  (flag) => {
     rundown.showViewerTitle = !!flag;
     io.emit("rundown_update", rundown);
   });
-
   socket.on("rundown_set_viewer_stripe", (flag) => {
     rundown.showViewerStripe = !!flag;
     io.emit("rundown_update", rundown);
   });
 
-  // Legacy: keep old combined toggle working
-  socket.on("rundown_set_viewer_title_stripe", (flag) => {
-    const v = !!flag;
-    rundown.showViewerTitle  = v;
-    rundown.showViewerStripe = v;
-    io.emit("rundown_update", rundown);
-  });
+  // (optional legacy support; map old combined toggle to both)
+  //socket.on("rundown_set_viewer_title_stripe", (flag) => {
+    //const v = !!flag;
+    //rundown.showViewerTitle  = v;
+    //rundown.showViewerStripe = v;
+    //io.emit("rundown_update", rundown);
+  //});
+
 
   socket.on("rundown_start_item", (id) => {
     const before = rundown;

@@ -43,31 +43,39 @@
 .viewer-time--amber { color:#f39c12; }
 .viewer-time--red   { color:#e74c3c; }
 
-/* PROGRESS BAR DOCKED TO THE BOTTOM (inside stage, so it mirrors) */
-.viewer-progress-track {
-  position: absolute;            /* <-- anchored to stage bottom */
+/* Progress container spans the full stage width at the very bottom */
+.viewer-progress {
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 44px;                  /* a bit taller for visibility */
+}
+
+/* Full-width bar */
+.viewer-progress-track {
+  width: 100%;
+  height: 44px;                 /* nice, readable height */
   display: flex;
   overflow: hidden;
   background: #0d0d0d;
   border-top: 2px solid #222;
 }
+/* Segments fill vertically; widths are set inline from React */
 .viewer-progress-seg { height: 100%; }
 
-/* BIG, high-contrast caret pointing DOWN */
+
+/* Large, DOWN-pointing caret sitting just above the bar */
 .viewer-caret {
   position: absolute;
-  bottom: 44px;                 /* right above the bar (bar is 44px high) */
+  left: 50%;
+  bottom: 44px;                 /* exactly above the 44px bar */
   transform: translateX(-50%);
-  width: 0; height: 0;
+  width: 0;
+  height: 0;
   border-left: 18px solid transparent;
   border-right: 18px solid transparent;
-  border-top: 24px solid #fff;  /* ▼ point down */
-  border-bottom: 0;
-  filter: drop-shadow(0 2px 0 rgba(0,0,0,.9));
+  border-top: 24px solid #fff;  /* ▼ points down */
+  filter: drop-shadow(0 2px 0 rgba(0,0,0,0.9));
   z-index: 5;
 }
 
