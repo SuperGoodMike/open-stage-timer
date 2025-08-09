@@ -219,7 +219,6 @@ export default function Viewer() {
               className="viewer-dot"
               style={{ background: active.color || "#28a745" }}
             />
-            <div className="viewer-title">{active.title}</div>
             {active.notes ? <div className="viewer-notes">{active.notes}</div> : null}
           </div>
         )}
