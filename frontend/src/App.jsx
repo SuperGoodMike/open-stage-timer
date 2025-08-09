@@ -1,30 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { socket } from "./socket";
+import RundownPanel from "./components/RundownPanel";
 import "./controller.css";
 
-function formatAsHMS(totalSeconds) {
-  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const h = String(Math.floor(s / 3600)).padStart(2, "0");
-  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-  const sec = String(s % 60).padStart(2, "0");
-  return `${h}:${m}:${sec}`;
-}
+function formatAsHMS(s) { s = Math.max(0, Math.floor(Number(s)||0)); const h=String(Math.floor(s/3600)).padStart(2,"0"), m=String(Math.floor((s%3600)/60)).padStart(2,"0"), sec=String(s%60).padStart(2,"0"); return `${h}:${m}:${sec}`; }
 
 export default function App() {
   const [timer, setTimer] = useState({ time: 0, running: false, type: "countdown" });
   const [inputTime, setInputTime] = useState(300);
   const [mode, setMode] = useState("countdown");
-  const [beepEnabled, setBeepEnabled] = useState(true); // NEW
+  const [beepEnabled, setBeepEnabled] = useState(true);
 
   useEffect(() => {
     const onTimer = (t) => setTimer(t);
-    const onSettings = (s) => setBeepEnabled(!!s?.beepEnabled); // NEW
+    const onSettings = (s) => setBeepEnabled(!!s?.beepEnabled);
     socket.on("timer_update", onTimer);
-    socket.on("settings_update", onSettings);                   // NEW
-    return () => {
-      socket.off("timer_update", onTimer);
-      socket.off("settings_update", onSettings);                // NEW
-    };
+    socket.on("settings_update", onSettings);
+    return () => { socket.off("timer_update", onTimer); socket.off("settings_update", onSettings); };
   }, []);
 
   const start = () => socket.emit("start_timer", { time: inputTime, type: mode });
@@ -33,16 +25,12 @@ export default function App() {
   const applyTime = () => socket.emit("set_timer", inputTime);
   const applyMode = (m) => { setMode(m); socket.emit("set_mode", m); };
   const setPreset = (secs) => { setInputTime(secs); socket.emit("set_timer", secs); };
-
-  // NEW: controller toggle
-  const toggleBeep = (e) => {
-    const val = e.target.checked;
-    setBeepEnabled(val);                 // optimistic UI
-    socket.emit("set_beep_enabled", val);
-  };
+  const toggleBeep = (e) => { const v=e.target.checked; setBeepEnabled(v); socket.emit("set_beep_enabled", v); };
 
   return (
     <div className="controller">
+      <RundownPanel />
+
       <h1 style={{ marginBottom: 10 }}>Open Stage Timer (Controller)</h1>
       <div className="time">{formatAsHMS(timer.time)}</div>
 
@@ -72,16 +60,11 @@ export default function App() {
         <button onClick={reset}>Reset</button>
       </div>
 
-      {/* NEW: Beep toggle */}
       <div style={{ marginTop: 10 }}>
         <label>
           <input type="checkbox" checked={beepEnabled} onChange={toggleBeep} />&nbsp;Beep at zero
         </label>
       </div>
-
-      <p style={{ opacity: 0.7, marginTop: 12 }}>
-        Viewer: <code>http://{window.location.hostname}:5173/viewer</code>
-      </p>
     </div>
   );
 }
