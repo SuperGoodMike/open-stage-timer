@@ -1,115 +1,424 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { socket } from "../socket";
 
-export default function RundownPanel() {
-  const [rundown, setRundown] = useState({ items: [], activeIndex: null, autoAdvance: false, showViewerTitleStripe: false });
-  const [draft, setDraft] = useState({ title: "", notes: "", startTime: "", durationSec: 60, color: "#2ecc71", warnPercent: 0.2, critPercent: 0.1 });
+function mmss(sec) {
+  sec = Math.max(0, Math.floor(Number(sec) || 0));
+  const m = Math.floor(sec / 60);
+  const s = String(sec % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
 
+export default function RundownPanel() {
+  const [rundown, setRundown] = useState({
+    items: [],
+    activeIndex: null,
+    autoAdvance: false,
+    showViewerTitleStripe: false,
+  });
+
+  const [draft, setDraft] = useState({
+    title: "",
+    notes: "",
+    startTime: "",
+    durationSec: 60,
+    color: "#2ecc71",
+    warnPercent: 0.2,
+    critPercent: 0.1,
+  });
+
+  // subscribe to rundown updates
   useEffect(() => {
     const onUpdate = (rd) => setRundown(rd);
     socket.on("rundown_update", onUpdate);
     return () => socket.off("rundown_update", onUpdate);
   }, []);
 
-  const add = () => { socket.emit("rundown_add_item", draft); setDraft({ title: "", notes: "", startTime: "", durationSec: 60, color: "#2ecc71", warnPercent: 0.2, critPercent: 0.1 }); };
-  const start = (id) => socket.emit("rundown_start_item", id);
-  const pause = () => socket.emit("pause_timer");
-  const stop  = () => socket.emit("reset_timer");
-  const remove = (id) => socket.emit("rundown_remove_item", id);
-  const setAA = (e) => socket.emit("rundown_set_auto_advance", e.target.checked);
-  const setStripe = (e) => socket.emit("rundown_set_viewer_title_stripe", e.target.checked);
-
-  // Drag & drop
-  const [dragId, setDragId] = useState(null);
-  const orderIds = useMemo(() => rundown.items.map((it) => it.id), [rundown.items]);
-  const onDragStart = (id) => setDragId(id);
-  const onDrop = (id) => {
-    if (!dragId || dragId === id) return setDragId(null);
-    const ids = orderIds.slice();
-    const from = ids.indexOf(dragId);
-    const to = ids.indexOf(id);
-    ids.splice(to, 0, ids.splice(from, 1)[0]);
-    socket.emit("rundown_reorder", ids);
-    setDragId(null);
+  // actions
+  const add = () => {
+    const clean = {
+      title: draft.title.trim() || "Untitled",
+      notes: draft.notes,
+      startTime: draft.startTime,
+      durationSec: Math.max(0, Number(draft.durationSec) || 0),
+      color: draft.color,
+      warnPercent: Math.max(0, Math.min(0.95, Number(draft.warnPercent) || 0.2)),
+      critPercent: Math.max(0, Math.min(0.95, Number(draft.critPercent) || 0.1)),
+    };
+    socket.emit("rundown_add_item", clean);
+    setDraft({
+      title: "",
+      notes: "",
+      startTime: "",
+      durationSec: 60,
+      color: "#2ecc71",
+      warnPercent: 0.2,
+      critPercent: 0.1,
+    });
   };
 
+  const start = (id) => socket.emit("rundown_start_item", id);
+  const pause = () => socket.emit("pause_timer");
+  const stop = () => socket.emit("reset_timer");
+  const remove = (id) => socket.emit("rundown_remove_item", id);
+  const toggleAA = (e) => socket.emit("rundown_set_auto_advance", e.target.checked);
+  const toggleStripe = (e) =>
+    socket.emit("rundown_set_viewer_title_stripe", e.target.checked);
+
+  // inline edit for Warn/Crit %
   const onRowPercentChange = (it, key, raw) => {
-    const val = Math.max(0, Math.min(95, Number(raw))); // keep sane 0..95
+    const val = Math.max(0, Math.min(95, Number(raw)));
     socket.emit("rundown_update_item", { id: it.id, patch: { [key]: val / 100 } });
   };
 
+  // === Drag & drop ===
+  const [dragId, setDragId] = useState(null);
+  const [hoverId, setHoverId] = useState(null);
+  const [hoverPos, setHoverPos] = useState("after"); // "before" | "after"
+  const orderIds = useMemo(() => rundown.items.map((it) => it.id), [rundown.items]);
+
+  const onDragStart = (id) => setDragId(id);
+
+  const onDragOverRow = (e, id) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    setHoverId(id);
+    setHoverPos(e.clientY < mid ? "before" : "after");
+  };
+
+  const onDragLeaveRow = () => {
+    setHoverId(null);
+  };
+
+  const onDropRow = (id) => {
+    if (!dragId) return;
+    const src = orderIds.indexOf(dragId);
+    const dst = orderIds.indexOf(id);
+    if (src === -1 || dst === -1) return;
+
+    const ids = orderIds.slice();
+    const [moved] = ids.splice(src, 1);
+
+    // Insert before/after hovered row
+    const insertAt =
+      hoverPos === "before" ? (dst <= src ? dst : dst) : (dst < src ? dst + 1 : dst + 1);
+
+    ids.splice(insertAt, 0, moved);
+
+    socket.emit("rundown_reorder", ids);
+    setDragId(null);
+    setHoverId(null);
+  };
+
+  // keyboard fallback
+  const moveUp = (id) => {
+    const ids = orderIds.slice();
+    const idx = ids.indexOf(id);
+    if (idx > 0) {
+      [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+      socket.emit("rundown_reorder", ids);
+    }
+  };
+  const moveDown = (id) => {
+    const ids = orderIds.slice();
+    const idx = ids.indexOf(id);
+    if (idx !== -1 && idx < ids.length - 1) {
+      [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+      socket.emit("rundown_reorder", ids);
+    }
+  };
+
   return (
-    <div style={{ background: "#1f1f1f", color: "#fff", padding: 12, borderRadius: 8, marginBottom: 16, border: "1px solid #2a2a2a", maxWidth: "100%", overflow: "hidden" }}>
-      {/* Add form */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 140px 1fr 110px 110px 110px auto", gap: 12, alignItems: "end" }}>
-        <div>
-          <label>Title<br/><input value={draft.title} onChange={(e)=>setDraft(d=>({...d,title:e.target.value}))}/></label>
+    <div
+      style={{
+        background: "#1f1f1f",
+        color: "#fff",
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+        border: "1px solid #2a2a2a",
+        maxWidth: "100%",
+        overflow: "hidden",
+      }}
+    >
+      {/* Add form (wraps cleanly) */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 12,
+          alignItems: "end",
+          minWidth: 0,
+        }}
+      >
+        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+          <label>
+            Title
+            <br />
+            <input
+              style={{ width: "100%" }}
+              value={draft.title}
+              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+            />
+          </label>
         </div>
-        <div>
-          <label>Start Time<br/><input value={draft.startTime} onChange={(e)=>setDraft(d=>({...d,startTime:e.target.value}))} placeholder="6:00 PM"/></label>
+
+        <div style={{ flex: "0 1 140px" }}>
+          <label>
+            Start Time
+            <br />
+            <input
+              style={{ width: "100%" }}
+              value={draft.startTime}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, startTime: e.target.value }))
+              }
+              placeholder="6:00 PM"
+            />
+          </label>
         </div>
-        <div>
-          <label>Duration (sec)<br/><input type="number" min={0} value={draft.durationSec} onChange={(e)=>setDraft(d=>({...d,durationSec:Number(e.target.value)}))}/></label>
+
+        <div style={{ flex: "0 1 140px" }}>
+          <label>
+            Duration (sec)
+            <br />
+            <input
+              type="number"
+              min={0}
+              style={{ width: "100%" }}
+              value={draft.durationSec}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, durationSec: Number(e.target.value) }))
+              }
+            />
+          </label>
         </div>
-        <div>
-          <label>Notes<br/><input value={draft.notes} onChange={(e)=>setDraft(d=>({...d,notes:e.target.value}))}/></label>
+
+        <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+          <label>
+            Notes
+            <br />
+            <input
+              style={{ width: "100%" }}
+              value={draft.notes}
+              onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
+            />
+          </label>
         </div>
-        <div>
-          <label>Warn %<br/><input type="number" min={0} max={95} value={Math.round(draft.warnPercent*100)} onChange={(e)=>setDraft(d=>({...d,warnPercent:Number(e.target.value)/100}))}/></label>
+
+        <div style={{ flex: "0 1 110px" }}>
+          <label>
+            Warn %
+            <br />
+            <input
+              type="number"
+              min={0}
+              max={95}
+              style={{ width: "100%" }}
+              value={Math.round(draft.warnPercent * 100)}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, warnPercent: Number(e.target.value) / 100 }))
+              }
+            />
+          </label>
         </div>
-        <div>
-          <label>Crit %<br/><input type="number" min={0} max={95} value={Math.round(draft.critPercent*100)} onChange={(e)=>setDraft(d=>({...d,critPercent:Number(e.target.value)/100}))}/></label>
+
+        <div style={{ flex: "0 1 110px" }}>
+          <label>
+            Crit %
+            <br />
+            <input
+              type="number"
+              min={0}
+              max={95}
+              style={{ width: "100%" }}
+              value={Math.round(draft.critPercent * 100)}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, critPercent: Number(e.target.value) / 100 }))
+              }
+            />
+          </label>
         </div>
-        <div>
-          <label>Color<br/><input type="color" value={draft.color} onChange={(e)=>setDraft(d=>({...d,color:e.target.value}))}/></label>
+
+        <div style={{ flex: "0 1 110px" }}>
+          <label>
+            Color
+            <br />
+            <input
+              type="color"
+              style={{ width: "100%" }}
+              value={draft.color}
+              onChange={(e) => setDraft((d) => ({ ...d, color: e.target.value }))}
+            />
+          </label>
         </div>
-        <button onClick={add} style={{ height: 36 }}>Add</button>
+
+        <div style={{ flex: "0 0 auto" }}>
+          <button onClick={add} style={{ height: 36 }}>
+            Add
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 10 }}>
-        <label><input type="checkbox" checked={rundown.autoAdvance} onChange={setAA}/> Auto-advance</label>
-        <label><input type="checkbox" checked={rundown.showViewerTitleStripe} onChange={setStripe}/> Viewer Title/Stripe</label>
+      {/* toggles */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+          marginTop: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <label>
+          <input
+            type="checkbox"
+            checked={rundown.autoAdvance}
+            onChange={toggleAA}
+          />{" "}
+          Auto-advance
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={rundown.showViewerTitleStripe}
+            onChange={toggleStripe}
+          />{" "}
+          Viewer Title/Stripe
+        </label>
       </div>
 
-      {/* List */}
+      {/* list */}
       <div style={{ marginTop: 12 }}>
-        {rundown.items.map((it, i) => (
-          <div key={it.id}
-            draggable
-            onDragStart={()=>onDragStart(it.id)}
-            onDragOver={(e)=>e.preventDefault()}
-            onDrop={()=>onDrop(it.id)}
-            style={{ display: "grid", gridTemplateColumns: "48px 100px 100px 1fr 110px 110px 120px 160px 60px", gap: 8, alignItems: "center", padding: 8, marginBottom: 8, borderRadius: 6, background: i===rundown.activeIndex? "#2a2a2a":"#141414", border: `2px solid ${it.color}` }}>
-            <div style={{ opacity: 0.7 }}>{i+1}</div>
-            <div>{it.startTime || "—"}</div>
-            <div>{Math.floor(it.durationSec/60)}:{String(it.durationSec%60).padStart(2,"0")}</div>
-            <div>
-              <div style={{ fontWeight: 600 }}>{it.title}</div>
-              <div style={{ opacity: 0.7, fontSize: 12 }}>{it.notes}</div>
-            </div>
+        {rundown.items.map((it, i) => {
+          const isActive = i === rundown.activeIndex;
+          const isHover = hoverId === it.id;
 
-            {/* Warn/Crit editors */}
-            <div>
-              <label style={{ fontSize: 12, opacity: 0.8 }}>Warn%<br/>
-                <input type="number" min={0} max={95} value={Math.round((it.warnPercent??0.2)*100)}
-                  onChange={(e)=>onRowPercentChange(it,"warnPercent",e.target.value)} style={{ width: 80 }}/>
-              </label>
-            </div>
-            <div>
-              <label style={{ fontSize: 12, opacity: 0.8 }}>Crit%<br/>
-                <input type="number" min={0} max={95} value={Math.round((it.critPercent??0.1)*100)}
-                  onChange={(e)=>onRowPercentChange(it,"critPercent",e.target.value)} style={{ width: 80 }}/>
-              </label>
-            </div>
+          return (
+            <div
+              key={it.id}
+              draggable
+              onDragStart={() => onDragStart(it.id)}
+              onDragOver={(e) => onDragOverRow(e, it.id)}
+              onDragLeave={onDragLeaveRow}
+              onDrop={() => onDropRow(it.id)}
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "48px 100px 100px 1fr 110px 110px 120px 160px 90px",
+                gap: 8,
+                alignItems: "center",
+                padding: 8,
+                marginBottom: 8,
+                borderRadius: 6,
+                background: isActive ? "#2a2a2a" : "#141414",
+                border: `2px solid ${it.color}`,
+                position: "relative",
+                minWidth: 0,
+              }}
+            >
+              {/* hover indicator line */}
+              {isHover && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 4,
+                    right: 4,
+                    height: 0,
+                    borderTop: "3px solid #0b5ed7",
+                    top: hoverPos === "before" ? -2 : "auto",
+                    bottom: hoverPos === "after" ? -2 : "auto",
+                  }}
+                />
+              )}
 
-            <div><button onClick={()=>start(it.id)}>▶ Start</button></div>
-            <div>
-              <button onClick={pause}>⏸ Pause</button>
-              <button onClick={stop} style={{ marginLeft: 6 }}>⏹ Reset</button>
+              {/* # */}
+              <div style={{ opacity: 0.7 }}>{i + 1}</div>
+
+              {/* Start Time */}
+              <div>{it.startTime || "—"}</div>
+
+              {/* Duration */}
+              <div>{mmss(it.durationSec)}</div>
+
+              {/* Title + Notes */}
+              <div style={{ minWidth: 0 }}>
+                <div className="rundown-title" style={{ fontWeight: 600 }}>
+                  {it.title}
+                </div>
+                <div className="rundown-notes" style={{ opacity: 0.7, fontSize: 12 }}>
+                  {it.notes}
+                </div>
+              </div>
+
+              {/* Warn% */}
+              <div>
+                <label style={{ fontSize: 12, opacity: 0.8 }}>
+                  Warn%
+                  <br />
+                  <input
+                    type="number"
+                    min={0}
+                    max={95}
+                    style={{ width: 80 }}
+                    value={Math.round((it.warnPercent ?? 0.2) * 100)}
+                    onChange={(e) =>
+                      onRowPercentChange(it, "warnPercent", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+
+              {/* Crit% */}
+              <div>
+                <label style={{ fontSize: 12, opacity: 0.8 }}>
+                  Crit%
+                  <br />
+                  <input
+                    type="number"
+                    min={0}
+                    max={95}
+                    style={{ width: 80 }}
+                    value={Math.round((it.critPercent ?? 0.1) * 100)}
+                    onChange={(e) =>
+                      onRowPercentChange(it, "critPercent", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+
+              {/* Start */}
+              <div>
+                <button onClick={() => start(it.id)} title="Start">
+                  ▶ Start
+                </button>
+              </div>
+
+              {/* Pause / Reset + Up/Down */}
+              <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                <button onClick={pause} title="Pause">
+                  ⏸
+                </button>
+                <button onClick={stop} title="Reset">
+                  ⏹
+                </button>
+                <button onClick={() => moveUp(it.id)} title="Up">
+                  ↑
+                </button>
+                <button onClick={() => moveDown(it.id)} title="Down">
+                  ↓
+                </button>
+              </div>
+
+              {/* Delete */}
+              <div style={{ textAlign: "right" }}>
+                <button onClick={() => remove(it.id)} title="Delete">
+                  🗑
+                </button>
+              </div>
             </div>
-            <div style={{ textAlign: "right" }}><button onClick={()=>remove(it.id)}>🗑</button></div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -40,8 +40,7 @@ function broadcast() {
 setInterval(() => {
   if (timer.type === "clock") {
     const now = new Date();
-    timer.time =
-      now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    timer.time = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
     io.emit("timer_update", timer);
     return;
   }
@@ -49,22 +48,36 @@ setInterval(() => {
 
   if (timer.type === "countdown") {
     timer.time = Math.max(0, timer.time - 1);
+
     if (timer.time === 0) {
       timer.running = false;
-      // auto-advance logic
+
+      // Only auto-advance if current item exists and had a real duration
       if (rundown.activeIndex !== null) {
         rundown = RD.markDone(rundown, rundown.activeIndex);
+
         const nxt = RD.nextIndex(rundown);
-        if (rundown.autoAdvance && nxt !== null) {
-          const id = rundown.items[nxt].id;
-          rundown = RD.startItem(rundown, id);
-          timer = {
-            time: rundown.items[nxt].durationSec,
-            running: true,
-            type: "countdown",
-          };
+        const canAuto = rundown.autoAdvance && nxt !== null;
+
+        if (canAuto) {
+          const nextItem = rundown.items[nxt];
+          const nextDur = Math.max(0, Number(nextItem?.durationSec) || 0);
+
+          if (nextDur > 0) {
+            // start next countdown
+            rundown = RD.startItem(rundown, nextItem.id);
+            timer = { time: nextDur, running: true, type: "countdown" };
+          } else {
+            // skip zero-duration items and clear active
+            rundown.activeIndex = null;
+          }
+        } else {
+          // end of list or auto-advance off
+          rundown.activeIndex = rundown.activeIndex; // unchanged; you may clear it if you prefer
         }
-        broadcast();
+
+        broadcast(); // push rundown + timer
+        return;      // prevent a second emit below
       }
     }
   } else if (timer.type === "countup") {
@@ -73,6 +86,7 @@ setInterval(() => {
 
   io.emit("timer_update", timer);
 }, 1000);
+
 
 // ---- Sockets ----
 io.on("connection", (socket) => {
